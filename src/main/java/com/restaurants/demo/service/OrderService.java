@@ -3,8 +3,10 @@ package com.restaurants.demo.service;
 import com.restaurants.demo.dto.request.OrderItemRequest;
 import com.restaurants.demo.dto.request.OrderRequest;
 import com.restaurants.demo.dto.response.DailyReport;
+import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
+import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.repository.OrderRepository;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.transaction.Transactional;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,7 +26,7 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    // private final MenuRepository menuRepository;
+    private final MenuItemRepository menuRepository;
 
     @Transactional
     public Order createOrder(OrderRequest request) {
@@ -31,35 +34,42 @@ public class OrderService {
         order.setTableNumber(request.getTableNumber());
         order.setStatus(OrderStatus.PLACED);
 
+        // Initialize the list so we can add items to it
         List<OrderItem> items = new ArrayList<>();
-        double total = 0.0;
+        BigDecimal total = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
             OrderItem item = new OrderItem();
             item.setOrder(order);
 
-            /* // Real implementation would look like this:
+            // 1. Fetch the MenuItem Entity
             MenuItem menuItem = menuRepository.findById(itemRequest.getMenuItemId())
-                    .orElseThrow(() -> new RuntimeException("Menu item not found"));
+                    .orElseThrow(() -> new RuntimeException("Menu item not found with ID: " + itemRequest.getMenuItemId()));
 
+            // 2. Validate Availability
+            if (Boolean.FALSE.equals(menuItem.getAvailable())) {
+                throw new RuntimeException("Item '" + menuItem.getName() + "' is currently unavailable.");
+            }
+
+            // 3. Set the Relationship (FIX: Use setMenuItem, not setMenuItemId)
+            item.setMenuItem(menuItem);
+
+            // 4. SNAPSHOT DATA (Critical for history)
+            // Even though we linked the entity above, we MUST copy the name and price
+            // so historical records don't change if the menu changes later.
             item.setItemName(menuItem.getName());
-            double realPrice = menuItem.getPrice();
-            */
+            item.setItemPrice(menuItem.getPrice());
 
-            item.setItemName("Item " + itemRequest.getMenuItemId());
-            double realPrice = 100.0;
-
-            item.setItemPrice(realPrice);
+            // 5. Set Quantity and Calculate Subtotal
             item.setQuantity(itemRequest.getQuantity());
-
-            double lineItemTotal = realPrice * itemRequest.getQuantity();
-
-            item.setSubtotal(lineItemTotal);
+            BigDecimal lineTotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            item.setSubtotal(lineTotal);
 
             items.add(item);
-            total += lineItemTotal;
+            total = total.add(lineTotal);
         }
 
+        // 6. Finalize Order
         order.setItems(items);
         order.setTotalAmount(total);
 
@@ -86,6 +96,7 @@ public class OrderService {
         Order order = getOrderDetails(orderId);
         OrderStatus current = order.getStatus();
 
+        // Validation logic for status transitions
         if (current == OrderStatus.SERVED && newStatus == OrderStatus.PLACED) {
             throw new RuntimeException("Invalid transition: Cannot go back to PLACED from SERVED");
         }
@@ -103,11 +114,11 @@ public class OrderService {
 
         List<Order> todayOrders = orderRepository.findByCreatedAtBetween(start, end);
 
-        double totalRevenue = 0.0;
+        BigDecimal totalRevenue = BigDecimal.ZERO;
         for (Order order : todayOrders) {
-            totalRevenue += order.getTotalAmount();
+            totalRevenue = totalRevenue.add(order.getTotalAmount());
         }
 
-        return new DailyReport((long) todayOrders.size(), totalRevenue);
+        return new DailyReport((long) todayOrders.size(), totalRevenue.doubleValue());
     }
 }
