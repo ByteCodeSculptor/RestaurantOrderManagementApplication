@@ -1,0 +1,44 @@
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('ADMIN', 'STAFF') NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE menu_items (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    available BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    table_number INT NOT NULL,
+    status ENUM('PLACED', 'PREPARING', 'READY', 'SERVED', 'CANCELLED') NOT NULL DEFAULT 'PLACED',
+    total_amount DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE order_items (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    menu_item_id BIGINT NOT NULL,
+    menu_item_name VARCHAR(150) NOT NULL,
+    price_at_order_time DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_menu
+        FOREIGN KEY (menu_item_id)
+        REFERENCES menu_items(id)
+);
