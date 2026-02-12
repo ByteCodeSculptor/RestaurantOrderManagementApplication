@@ -39,12 +39,4 @@ public class OrderItem {
     private Integer quantity;
 
     private Double subtotal;
-
-    @PrePersist
-    @PreUpdate
-    public void calculateSubtotal () {
-        if (this.itemPrice != null && this.quantity != null) {
-            this.subtotal = this.itemPrice * this.quantity;
-        }
-    }
 }
