@@ -8,16 +8,19 @@ import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
 import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.repository.OrderRepository;
+import com.restaurants.demo.specifications.OrderSpecification;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,15 +79,22 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    public Page<Order> getAllOrders(OrderStatus status, Integer tableNumber, Pageable pageable) {
-        if (status != null && tableNumber != null) {
-            return orderRepository.findByStatusAndTableNumber(status, tableNumber, pageable);
-        } else if (status != null) {
-            return orderRepository.findByStatus(status, pageable);
-        } else if (tableNumber != null) {
-            return orderRepository.findByTableNumber(tableNumber, pageable);
-        }
-        return orderRepository.findAll(pageable);
+    public Page<Order> getAllOrders(
+            OrderStatus status,
+            Integer tableNumber,
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable
+    ) {
+        LocalDateTime start = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime end = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
+
+        Specification<Order> spec = OrderSpecification.hasStatus(status)
+                .and(OrderSpecification.hasTableNumber(tableNumber))
+                .and(OrderSpecification.createdAfter(start))
+                .and(OrderSpecification.createdBefore(end));
+
+        return orderRepository.findAll(spec, pageable);
     }
 
     public Order getOrderDetails(Long orderId) {
@@ -96,14 +106,21 @@ public class OrderService {
         Order order = getOrderDetails(orderId);
         OrderStatus current = order.getStatus();
 
-        // Validation logic for status transitions
-        if (current == OrderStatus.SERVED && newStatus == OrderStatus.PLACED) {
-            throw new RuntimeException("Invalid transition: Cannot go back to PLACED from SERVED");
-        }
-        if (current == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Invalid transition: Cannot update a CANCELLED order");
+        // 1. Check if the transition is allowed
+        boolean isAllowed = switch (current) {
+            case PLACED -> (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.CANCELLED);
+            case PREPARING -> (newStatus == OrderStatus.READY);
+            case READY -> (newStatus == OrderStatus.SERVED);
+            case SERVED -> false;    // No transitions allowed once served
+            case CANCELLED -> false; // No transitions allowed once cancelled
+        };
+
+        // 2. If not allowed, block the update
+        if (!isAllowed) {
+            throw new RuntimeException("Invalid transition: Cannot move from " + current + " to " + newStatus);
         }
 
+        // 3. Update and Save
         order.setStatus(newStatus);
         return orderRepository.save(order);
     }

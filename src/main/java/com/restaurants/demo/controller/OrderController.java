@@ -9,9 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -31,9 +34,11 @@ public class OrderController {
     public ResponseEntity<Page<Order>> getAllOrders(
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) Integer tableNumber,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable
     ) {
-        return ResponseEntity.ok(orderService.getAllOrders(status, tableNumber, pageable));
+        return ResponseEntity.ok(orderService.getAllOrders(status, tableNumber, startDate, endDate, pageable));
     }
 
     @GetMapping("/{id}")
