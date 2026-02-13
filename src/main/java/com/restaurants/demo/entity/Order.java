@@ -32,9 +32,9 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     @Builder.Default
-    @ToString.Exclude // Prevents infinite loop in logs
+    @ToString.Exclude
     private List<OrderItem> items = new ArrayList<>();
 
     private LocalDateTime createdAt;

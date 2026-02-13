@@ -31,7 +31,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuRepository;
 
-    @Transactional
+    @Transactional // for atomicity - both order and all its items must be created else everything will be rolled back
+    // business logic to create an order with all its orderItems and store in db
     public Order createOrder(OrderRequest request) {
         Order order = new Order();
         order.setTableNumber(request.getTableNumber());
@@ -45,40 +46,34 @@ public class OrderService {
             OrderItem item = new OrderItem();
             item.setOrder(order);
 
-            // 1. Fetch the MenuItem Entity
+            // Check if menu item with given menuItemId exists in menuItem table or not
             MenuItem menuItem = menuRepository.findById(itemRequest.getMenuItemId())
                     .orElseThrow(() -> new RuntimeException("Menu item not found with ID: " + itemRequest.getMenuItemId()));
 
-            // 2. Validate Availability
+            // Validate the availability of the menuItem
             if (Boolean.FALSE.equals(menuItem.getAvailable())) {
                 throw new RuntimeException("Item '" + menuItem.getName() + "' is currently unavailable.");
             }
 
-            // 3. Set the Relationship (FIX: Use setMenuItem, not setMenuItemId)
             item.setMenuItem(menuItem);
-
-            // 4. SNAPSHOT DATA (Critical for history)
-            // Even though we linked the entity above, we MUST copy the name and price
-            // so historical records don't change if the menu changes later.
             item.setItemName(menuItem.getName());
             item.setItemPrice(menuItem.getPrice());
 
-            // 5. Set Quantity and Calculate Subtotal
             item.setQuantity(itemRequest.getQuantity());
-            BigDecimal lineTotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
-            item.setSubtotal(lineTotal);
+            BigDecimal subTotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            item.setSubtotal(subTotal);
 
             items.add(item);
-            total = total.add(lineTotal);
+            total = total.add(subTotal);
         }
 
-        // 6. Finalize Order
         order.setItems(items);
         order.setTotalAmount(total);
 
         return orderRepository.save(order);
     }
 
+    // Service to fetch all orders by adding dynamic filtering
     public Page<Order> getAllOrders(
             OrderStatus status,
             Integer tableNumber,
@@ -89,10 +84,12 @@ public class OrderService {
         LocalDateTime start = startDate != null ? startDate.atStartOfDay() : null;
         LocalDateTime end = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
 
-        Specification<Order> spec = OrderSpecification.hasStatus(status)
-                .and(OrderSpecification.hasTableNumber(tableNumber))
-                .and(OrderSpecification.createdAfter(start))
-                .and(OrderSpecification.createdBefore(end));
+        Specification<Order> spec = Specification.allOf(
+                OrderSpecification.hasStatus(status),
+                OrderSpecification.hasTableNumber(tableNumber),
+                OrderSpecification.createdAfter(start),
+                OrderSpecification.createdBefore(end)
+        );
 
         return orderRepository.findAll(spec, pageable);
     }
@@ -106,21 +103,18 @@ public class OrderService {
         Order order = getOrderDetails(orderId);
         OrderStatus current = order.getStatus();
 
-        // 1. Check if the transition is allowed
         boolean isAllowed = switch (current) {
             case PLACED -> (newStatus == OrderStatus.PREPARING || newStatus == OrderStatus.CANCELLED);
             case PREPARING -> (newStatus == OrderStatus.READY);
             case READY -> (newStatus == OrderStatus.SERVED);
-            case SERVED -> false;    // No transitions allowed once served
-            case CANCELLED -> false; // No transitions allowed once cancelled
+            case SERVED -> false;
+            case CANCELLED -> false;
         };
 
-        // 2. If not allowed, block the update
         if (!isAllowed) {
             throw new RuntimeException("Invalid transition: Cannot move from " + current + " to " + newStatus);
         }
 
-        // 3. Update and Save
         order.setStatus(newStatus);
         return orderRepository.save(order);
     }
