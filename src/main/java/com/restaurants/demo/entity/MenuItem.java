@@ -28,7 +28,7 @@ public class MenuItem {
     private BigDecimal price;
 
     @Column(nullable = false)
-    private boolean available = true;
+    private Boolean available = true;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
