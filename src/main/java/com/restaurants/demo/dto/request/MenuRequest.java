@@ -21,5 +21,5 @@ public class MenuRequest {
     private BigDecimal price;
 
     @NotNull(message = "Availability is required")
-    private boolean available;
+    private Boolean available;
 }
