@@ -58,6 +58,9 @@ public class AuthController {
         return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getUsername(), role));
     }
 
+    /*
+        Endpoint for registering new users. Only accessible to admins. Validates input and checks for existing email before creating a new user.
+     */
     @PostMapping("/admin/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {

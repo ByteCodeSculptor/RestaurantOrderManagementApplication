@@ -7,6 +7,11 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
+/*
+    OrderItem is an entity class that represents an item in a customer's order. 
+    It contains references to the associated Order and MenuItem, as well as details about the quantity ordered, price at the time of order, and the subtotal for that item.
+*/
+
 @Entity
 @Table(name = "order_items")
 @Getter

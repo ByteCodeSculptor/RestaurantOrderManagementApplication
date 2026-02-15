@@ -2,6 +2,10 @@ package com.restaurants.demo.dto.response;
 
 import lombok.Data;
 
+
+/*
+    JwtResponse is a simple DTO used to represent the response after a successful login. It contains the JWT token, the token type, the user's email, and their role.
+*/
 @Data
 public class JwtResponse {
     private String token;

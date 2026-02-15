@@ -3,6 +3,9 @@ package com.restaurants.demo.exception;
 import lombok.Builder;
 import lombok.Getter;
 
+/*
+    ApiResponse is a generic class used to standardize the structure of API responses. It contains a success flag, a message, and an optional data payload of type T.
+*/
 @Getter
 @Builder
 public class ApiResponse<T> {

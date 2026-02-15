@@ -6,6 +6,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+/*
+    User is an entity class that represents a user in the restaurant order management system. 
+*/
+
 @Entity
 @Table(name = "users")
 @Data

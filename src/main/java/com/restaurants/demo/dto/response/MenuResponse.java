@@ -7,6 +7,11 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 
+
+/*
+    MenuResponse is a simple DTO used to represent menu items in the response. It contains the menu item ID, name, description, price, and availability status.
+*/
+
 @Getter
 @Setter
 @Builder

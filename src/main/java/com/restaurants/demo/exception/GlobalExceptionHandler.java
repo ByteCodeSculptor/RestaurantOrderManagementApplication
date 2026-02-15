@@ -6,6 +6,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/*
+    GlobalExceptionHandler is a centralized exception handler for the application. It uses @RestControllerAdvice to handle exceptions thrown by any controller and return consistent error responses.
+    It handles CustomException, AccessDeniedException, and any generic Exception, returning appropriate HTTP status codes and error messages in a JSON format.
+*/
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
