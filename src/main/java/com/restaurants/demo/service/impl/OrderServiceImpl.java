@@ -18,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,10 +47,10 @@ public class OrderServiceImpl implements OrderService {
             // We have to map fields of orderItemRequest with the OrderItem entity to store in DB
             for (OrderItemRequest item : orderRequest.getItems()) {
                 MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Menu item not found"));
+                        .orElseThrow(() -> new CustomException("Menu item not found!", HttpStatus.NOT_FOUND));
 
                 if (!menuItem.getAvailable()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item not available!");
+                    throw new CustomException("Item not available!", HttpStatus.BAD_REQUEST);
                 }
 
                 OrderItem orderItem = new OrderItem();
@@ -108,7 +107,7 @@ public class OrderServiceImpl implements OrderService {
     public Order getOrderById (Long orderId) {
         try {
             return orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found!"));
+                    .orElseThrow(() -> new CustomException("Order not found!", HttpStatus.NOT_FOUND));
         } catch (Exception e) {
             throw new CustomException("Failed to fetch order!", HttpStatus.BAD_REQUEST);
         }
@@ -129,7 +128,7 @@ public class OrderServiceImpl implements OrderService {
             };
 
             if (!isValidTransition) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status transition!");
+                throw new CustomException("Invalid status transition!", HttpStatus.BAD_REQUEST);
             }
 
             order.setStatus(status);
