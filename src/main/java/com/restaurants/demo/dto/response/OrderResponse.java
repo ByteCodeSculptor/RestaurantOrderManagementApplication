@@ -1,6 +1,7 @@
 package com.restaurants.demo.dto.response;
 
 import com.restaurants.demo.util.OrderStatus;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +11,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
 public class OrderResponse {
     private Long id;
     private Integer tableNumber;
