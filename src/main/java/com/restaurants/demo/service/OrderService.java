@@ -48,7 +48,7 @@ public class OrderService {
             MenuItem menuItem = menuItemRepository.findById (item.getMenuItemId())
                     .orElseThrow(() -> new ResponseStatusException (HttpStatus.NOT_FOUND, "Menu item not found"));
 
-            if (!menuItem.isAvailable()) {
+            if (!menuItem.getAvailable()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item not available!");
             }
 
