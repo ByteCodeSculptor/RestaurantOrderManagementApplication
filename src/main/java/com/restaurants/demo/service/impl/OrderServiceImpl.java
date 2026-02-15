@@ -29,132 +29,106 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
-    private final OrderRepository orderRepository;
 
+    private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
 
     @Override
-    public Order createOrder (OrderRequest orderRequest) {
-        try {
-            Order order = new Order();
-            order.setTableNumber(orderRequest.getTableNumber());
-            order.setStatus(OrderStatus.PLACED);
+    public Order createOrder(OrderRequest orderRequest) {
+        Order order = new Order();
+        order.setTableNumber(orderRequest.getTableNumber());
+        order.setStatus(OrderStatus.PLACED);
 
-            List<OrderItem> items = new ArrayList<>();
+        List<OrderItem> items = new ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
 
-            BigDecimal total = BigDecimal.ZERO; // Initial value set to Zero
+        // Map fields of orderItemRequest with the OrderItem entity
+        for (OrderItemRequest item : orderRequest.getItems()) {
+            MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
+                    .orElseThrow(() -> new CustomException("Menu item not found!", HttpStatus.NOT_FOUND));
 
-            // We have to map fields of orderItemRequest with the OrderItem entity to store in DB
-            for (OrderItemRequest item : orderRequest.getItems()) {
-                MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
-                        .orElseThrow(() -> new CustomException("Menu item not found!", HttpStatus.NOT_FOUND));
-
-                if (!menuItem.getAvailable()) {
-                    throw new CustomException("Item not available!", HttpStatus.BAD_REQUEST);
-                }
-
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrder(order);
-                orderItem.setPriceAtOrderTime(menuItem.getPrice());
-                orderItem.setQuantity(item.getQuantity());
-                orderItem.setMenuItemName(menuItem.getName());
-                orderItem.setMenuItem(menuItem);
-
-                // Subtotal of each item is quantity x price of that item
-                BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
-
-                orderItem.setSubtotal(subtotal);
-
-                // updating the items list
-                items.add(orderItem);
-
-                // updating the total amount for this order
-                total = total.add(subtotal);
+            if (!menuItem.getAvailable()) {
+                throw new CustomException(menuItem.getName() + " is not available!", HttpStatus.BAD_REQUEST);
             }
 
-            order.setItems(items);
-            order.setTotalAmount(total);
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setPriceAtOrderTime(menuItem.getPrice());
+            orderItem.setQuantity(item.getQuantity());
+            orderItem.setMenuItemName(menuItem.getName());
+            orderItem.setMenuItem(menuItem);
 
-            return orderRepository.save(order);
-        } catch (Exception e) {
-            throw new CustomException("Failed to create order!", HttpStatus.BAD_REQUEST);
+            // Subtotal of each item is quantity x price
+            BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
+            orderItem.setSubtotal(subtotal);
+
+            items.add(orderItem);
+            total = total.add(subtotal);
         }
+
+        order.setItems(items);
+        order.setTotalAmount(total);
+
+        return orderRepository.save(order);
     }
 
     @Override
-    public Page<Order> getOrders (OrderStatus status,
-                                  Integer tableNumber,
-                                  LocalDate startDate,
-                                  LocalDate endDate,
-                                  Pageable pageable) {
-        try {
-            // All filters must be satisfied and specification resemble WHERE queries in SQL
-            // and all there queries must be fullfilled
-            Specification<Order> spec = Specification.allOf(
-                    OrderSpecification.hasStatus(status),
-                    OrderSpecification.hasTableNumber(tableNumber),
-                    OrderSpecification.createdAfterOrEqual(startDate),
-                    OrderSpecification.createdBefore(endDate)
-            );
+    public Page<Order> getOrders(OrderStatus status,
+                                 Integer tableNumber,
+                                 LocalDate startDate,
+                                 LocalDate endDate,
+                                 Pageable pageable) {
+        // All filters must be satisfied; specification resembles WHERE queries in SQL
+        Specification<Order> spec = Specification.allOf(
+                OrderSpecification.hasStatus(status),
+                OrderSpecification.hasTableNumber(tableNumber),
+                OrderSpecification.createdAfterOrEqual(startDate),
+                OrderSpecification.createdBefore(endDate)
+        );
 
-            return orderRepository.findAll(spec, pageable);
-        } catch (Exception e) {
-            throw new CustomException("Failed to fetch orders!", HttpStatus.BAD_REQUEST);
-        }
+        return orderRepository.findAll(spec, pageable);
     }
 
     @Override
-    public Order getOrderById (Long orderId) {
-        try {
-            return orderRepository.findById(orderId)
-                    .orElseThrow(() -> new CustomException("Order not found!", HttpStatus.NOT_FOUND));
-        } catch (Exception e) {
-            throw new CustomException("Failed to fetch order!", HttpStatus.BAD_REQUEST);
-        }
+    public Order getOrderById(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException("Order not found!", HttpStatus.NOT_FOUND));
     }
 
     @Override
-    public Order updateOrderStatus (Long orderId, OrderStatus status) {
-        try {
-            Order order = this.getOrderById(orderId);
-            OrderStatus currentStatus = order.getStatus();
+    public Order updateOrderStatus(Long orderId, OrderStatus status) {
+        Order order = this.getOrderById(orderId);
+        OrderStatus currentStatus = order.getStatus();
 
-            // Checking if transition is valid or not
-            boolean isValidTransition = switch (currentStatus) {
-                case PLACED -> status == OrderStatus.PREPARING || status == OrderStatus.CANCELLED;
-                case PREPARING -> status == OrderStatus.READY;
-                case READY -> status == OrderStatus.SERVED;
-                case SERVED, CANCELLED -> false;
-            };
+        // Check if transition is valid using switch expression
+        boolean isValidTransition = switch (currentStatus) {
+            case PLACED -> status == OrderStatus.PREPARING || status == OrderStatus.CANCELLED;
+            case PREPARING -> status == OrderStatus.READY;
+            case READY -> status == OrderStatus.SERVED;
+            case SERVED, CANCELLED -> false;
+        };
 
-            if (!isValidTransition) {
-                throw new CustomException("Invalid status transition!", HttpStatus.BAD_REQUEST);
-            }
-
-            order.setStatus(status);
-            return orderRepository.save(order);
-        } catch (Exception e) {
-            throw new CustomException("Failed to update order status!", HttpStatus.BAD_REQUEST);
+        if (!isValidTransition) {
+            throw new CustomException("Invalid status transition from " + currentStatus + " to " + status, HttpStatus.BAD_REQUEST);
         }
+
+        order.setStatus(status);
+        return orderRepository.save(order);
     }
 
     @Override
-    public DailyReportResponse getDailyReport () {
-        try {
-            LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-            LocalDateTime endOfToday = LocalDate.now().atTime(LocalTime.MAX);
+    public DailyReportResponse getDailyReport() {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfToday = LocalDate.now().atTime(LocalTime.MAX);
 
-            List<Order> orders = orderRepository.findByCreatedAtBetween(startOfToday, endOfToday);
+        List<Order> orders = orderRepository.findByCreatedAtBetween(startOfToday, endOfToday);
 
-            BigDecimal totalRevenue = BigDecimal.ZERO;
+        BigDecimal totalRevenue = BigDecimal.ZERO;
 
-            for (Order order : orders) {
-                totalRevenue = totalRevenue.add(order.getTotalAmount());
-            }
-
-            return new DailyReportResponse(totalRevenue, (long) orders.size());
-        } catch (Exception e) {
-            throw new CustomException("Failed to get daily report!", HttpStatus.BAD_REQUEST);
+        for (Order order : orders) {
+            totalRevenue = totalRevenue.add(order.getTotalAmount());
         }
+
+        return new DailyReportResponse(totalRevenue, (long) orders.size());
     }
 }
