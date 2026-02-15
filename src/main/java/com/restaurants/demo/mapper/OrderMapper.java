@@ -9,6 +9,10 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    OrderMapper is responsible for converting Order entities to OrderResponse DTOs, which are used to send order data in API responses.
+    It also converts OrderItem entities to OrderItemResponse DTOs for detailed order information.
+ */
 @Component
 public class OrderMapper {
 

@@ -20,6 +20,10 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api")
+
+/*
+    AuthController handles all authentication and user registration endpoints.
+ */ 
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -34,8 +38,13 @@ public class AuthController {
         this.jwtUtils = jwtUtils;
     }
 
+    /*
+        Endpoint for user(admin/staff) login. Validates credentials and returns a JWT token if successful.
+    */
     @PostMapping("/auth/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+
+        
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 

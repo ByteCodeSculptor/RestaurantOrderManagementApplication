@@ -19,6 +19,9 @@ public class MenuController {
 
     private final MenuService menuService;
 
+    /*
+        Admin-only endpoints for create items.
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<?> createMenuItem(@Valid @RequestBody MenuRequest request) {
@@ -26,6 +29,9 @@ public class MenuController {
         return ResponseHelper.success(response, "Menu item created successfully");
     }
 
+    /*
+        Admin-only endpoints for update and delete items.
+    */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMenuItem(@PathVariable Long id, @Valid @RequestBody MenuRequest request){
@@ -33,6 +39,9 @@ public class MenuController {
         return ResponseHelper.success(response, "Menu item updated successfully");
     }
 
+    /*
+        Admin-only endpoint for deleting menu items.
+    */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteMenuItem(@PathVariable Long id){
@@ -40,6 +49,10 @@ public class MenuController {
         return ResponseHelper.success("Menu item deleted successfully");
     }
 
+
+    /*
+        Admin-only endpoint for updating availability of menu items.
+    */
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/availability")
     public ResponseEntity<?> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
@@ -47,6 +60,9 @@ public class MenuController {
         return ResponseHelper.success(response, "Availability updated successfully");
     }
 
+    /*
+        Endpoint for fetching menu items with optional filtering by availability. Accessible to both admin and staff.
+    */
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     @GetMapping
     public ResponseEntity<?> getMenuItems(
