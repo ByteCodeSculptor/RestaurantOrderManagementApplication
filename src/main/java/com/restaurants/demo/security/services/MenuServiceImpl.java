@@ -76,6 +76,7 @@ public class MenuServiceImpl implements MenuService {
         MenuItem updated = menuItemRepository.save(menuItem);
 
         return MenuResponse.builder()
+                .id(updated.getId())
                 .name(updated.getName())
                 .description(updated.getDescription())
                 .price(updated.getPrice())

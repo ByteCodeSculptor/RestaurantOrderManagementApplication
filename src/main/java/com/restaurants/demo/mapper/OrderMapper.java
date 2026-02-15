@@ -6,6 +6,7 @@ import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,9 +21,11 @@ public class OrderMapper {
         orderResponse.setTotalAmount(order.getTotalAmount());
         orderResponse.setCreatedAt(order.getCreatedAt());
 
-        List<OrderItemResponse> items = order.getItems().stream()
-                .map(this::toItemResponse)
-                .collect(Collectors.toList());
+        List<OrderItemResponse> items = new ArrayList<>();
+
+        for (OrderItem item : order.getItems()) {
+            items.add(toItemResponse(item));
+        }
 
         orderResponse.setItems(items);
 
