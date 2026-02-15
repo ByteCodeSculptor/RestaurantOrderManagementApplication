@@ -2,6 +2,7 @@ package com.restaurants.demo.config;
 
 import com.restaurants.demo.security.jwt.AuthEntryPointJwt;
 import com.restaurants.demo.security.jwt.AuthTokenFilter;
+import com.restaurants.demo.security.jwt.CustomAccessDeniedHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,13 +21,15 @@ public class WebSecurityConfig {
 
     private final AuthEntryPointJwt unauthorizedHandler;
     private final AuthTokenFilter authTokenFilter;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
- // Simplified constructor: Spring handles the provider wiring automatically
-    public WebSecurityConfig(AuthEntryPointJwt unauthorizedHandler, AuthTokenFilter authTokenFilter) {
+    public WebSecurityConfig(AuthEntryPointJwt unauthorizedHandler,
+                             AuthTokenFilter authTokenFilter,
+                             CustomAccessDeniedHandler accessDeniedHandler) {
         this.unauthorizedHandler = unauthorizedHandler;
         this.authTokenFilter = authTokenFilter;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
@@ -41,16 +44,19 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/menu-items/**").hasAnyRole("ADMIN", "STAFF")
-                .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
-                    .requestMatchers("/error").permitAll()
-                .anyRequest().authenticated()
-            );
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/menu-items/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/error").permitAll()
+                        .anyRequest().authenticated()
+                );
 
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
