@@ -8,6 +8,7 @@ import com.restaurants.demo.exception.ApiResponse;
 import com.restaurants.demo.mapper.OrderMapper;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.util.OrderStatus;
+import com.restaurants.demo.util.ResponseHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,14 +39,7 @@ public class OrderController {
         Order order = orderService.createOrder(orderRequest);
         OrderResponse orderResponse = orderMapper.toResponse(order);
 
-        ApiResponse<OrderResponse> apiResponse = ApiResponse.<OrderResponse>builder()
-                .status(HttpStatus.CREATED.value())
-                .message("Successfully created the order!")
-                .data(orderResponse)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(apiResponse);
+        return ResponseHelper.success(orderResponse, "Order created successfully!");
     }
 
     // dynamic filtering controller whose access can be given to both admin and staff
@@ -64,14 +58,7 @@ public class OrderController {
             orderResponses.add (orderMapper.toResponse(order));
         }
 
-        ApiResponse<List<OrderResponse>> apiResponse = ApiResponse.<List<OrderResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Successfully fetched all orders!")
-                .data(orderResponses)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(apiResponse);
+        return ResponseHelper.success(orderResponses, "Successfully fetched all orders!");
     }
 
     @GetMapping("/{id}")
@@ -81,14 +68,7 @@ public class OrderController {
 
         OrderResponse orderResponse = orderMapper.toResponse(order);
 
-        ApiResponse<OrderResponse> apiResponse = ApiResponse.<OrderResponse>builder()
-                .status(HttpStatus.CREATED.value())
-                .message("Successfully fetched the order!")
-                .data(orderResponse)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(apiResponse);
+        return ResponseHelper.success(orderResponse, "Successfully fetched the order!");
     }
 
     @PatchMapping("/{id}/status")
@@ -99,14 +79,7 @@ public class OrderController {
 
         OrderResponse orderResponse = orderMapper.toResponse(order);
 
-        ApiResponse<OrderResponse> apiResponse = ApiResponse.<OrderResponse>builder()
-                .status(HttpStatus.CREATED.value())
-                .message("Successfully updated the order status!")
-                .data(orderResponse)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(apiResponse);
+        return ResponseHelper.success(orderResponse, "Successfully updated the order status!");
     }
 
     @GetMapping("/reports/daily")
@@ -114,13 +87,6 @@ public class OrderController {
     public ResponseEntity<?> getDailyReport () {
         DailyReportResponse dailyReportResponse = orderService.getDailyReport();
 
-        ApiResponse<DailyReportResponse> apiResponse = ApiResponse.<DailyReportResponse>builder()
-                .status(HttpStatus.CREATED.value())
-                .message("Successfully fetched today's report!")
-                .data(dailyReportResponse)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(apiResponse);
+        return ResponseHelper.success(dailyReportResponse, "Successfully fetched today's report!");
     }
 }

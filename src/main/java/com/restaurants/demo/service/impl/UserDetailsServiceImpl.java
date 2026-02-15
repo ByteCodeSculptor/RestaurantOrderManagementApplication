@@ -1,4 +1,4 @@
-package com.restaurants.demo.service;
+package com.restaurants.demo.service.impl;
 
 import com.restaurants.demo.entity.User;
 import com.restaurants.demo.repository.UserRepository;
