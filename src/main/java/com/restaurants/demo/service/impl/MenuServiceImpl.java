@@ -1,10 +1,11 @@
-package com.restaurants.demo.service;
+package com.restaurants.demo.service.impl;
 
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.exception.CustomException;
 import com.restaurants.demo.repository.MenuItemRepository;
+import com.restaurants.demo.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

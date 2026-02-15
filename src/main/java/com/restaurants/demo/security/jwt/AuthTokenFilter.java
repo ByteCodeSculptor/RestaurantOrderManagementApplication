@@ -1,6 +1,6 @@
 package com.restaurants.demo.security.jwt;
 
-import com.restaurants.demo.service.UserDetailsServiceImpl;
+import com.restaurants.demo.service.impl.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
