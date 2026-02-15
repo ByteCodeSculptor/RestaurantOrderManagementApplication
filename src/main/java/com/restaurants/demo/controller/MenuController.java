@@ -4,7 +4,7 @@ import com.restaurants.demo.dto.request.AvailabilityRequest;
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.exception.ApiResponse;
-import com.restaurants.demo.security.services.MenuService;
+import com.restaurants.demo.service.MenuService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

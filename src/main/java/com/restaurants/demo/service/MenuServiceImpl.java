@@ -1,4 +1,4 @@
-package com.restaurants.demo.security.services;
+package com.restaurants.demo.service;
 
 
 import com.restaurants.demo.dto.request.MenuRequest;
