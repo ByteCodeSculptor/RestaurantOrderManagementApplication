@@ -1,16 +1,22 @@
 package com.restaurants.demo.security.jwt;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+import java.security.Key;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
-import java.util.Date;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 /*
     JwtUtils is a utility class that provides methods for generating, parsing, and validating JWT tokens.
@@ -19,18 +25,24 @@ import java.util.Date;
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    @Value("${restaurant.app.jwtSecret:SecretKeyToGenerateJWTsForRestaurantOrderManagementSystem}")
+    @Value("${restaurant.app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${restaurant.app.jwtExpirationMs:86400000}")
+    @Value("${restaurant.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
 
+        // Extract roles from the user authorities
+        List<String> roles = userPrincipal.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
         return Jwts.builder()
-                .setSubject((userPrincipal.getUsername())) // In our case, this is the email
+                .setSubject((userPrincipal.getUsername()))
+                .claim("roles", roles) 
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
