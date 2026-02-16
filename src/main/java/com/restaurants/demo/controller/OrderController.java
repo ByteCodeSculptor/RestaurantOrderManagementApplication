@@ -5,7 +5,6 @@ import com.restaurants.demo.dto.request.OrderStatusRequest;
 import com.restaurants.demo.dto.response.DailyReportResponse;
 import com.restaurants.demo.dto.response.OrderResponse;
 import com.restaurants.demo.exception.ApiResponse;
-import com.restaurants.demo.mapper.OrderMapper;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.validation.Valid;
@@ -27,14 +26,11 @@ import java.util.List;
  */
 public class OrderController {
     private final OrderService orderService;
-
-    private final OrderMapper orderMapper;
-
     /*
         Endpoint for creating a new order. Accessible only to staff members.
      */
     @PostMapping
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder (@Valid @RequestBody OrderRequest orderRequest) {
         return orderService.createOrder(orderRequest);
     }
@@ -63,8 +59,8 @@ public class OrderController {
         Endpoint for updating the status of an order.
     */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('STAFF')")
-    public ResponseEntity<?> updateOrderStatus (@PathVariable Long id,
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (@PathVariable Long id,
                                                             @RequestBody OrderStatusRequest orderStatusRequest) {
         return orderService.updateOrderStatus(id, orderStatusRequest.getOrderStatus());
     }
@@ -73,14 +69,14 @@ public class OrderController {
         Endpoint for updating the order.
     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrder (@PathVariable Long id,
                                                 @Valid @RequestBody OrderRequest orderRequest) {
         return orderService.updateOrder(id, orderRequest);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> deleteOrder (@PathVariable Long id) {
         return orderService.deleteOrder(id);
     }
