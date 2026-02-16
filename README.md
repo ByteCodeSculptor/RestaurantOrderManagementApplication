@@ -135,7 +135,7 @@ PATCH /api/orders/{id}/status
 ## 📊 Reporting (ADMIN)
 
 ### Daily Summary Report
-GET /api/reports/daily-summary?date=YYYY-MM-DD
+GET /api/orders/reports/daily
 
 ---
 
@@ -143,5 +143,4 @@ GET /api/reports/daily-summary?date=YYYY-MM-DD
 
 - /api/auth/** → Public
 - /api/menu-items/** → ADMIN (write), STAFF (read)
-- /api/orders/** → STAFF
-- /api/reports/** → ADMIN
+- /api/orders/** → STAFF, ADMIN
