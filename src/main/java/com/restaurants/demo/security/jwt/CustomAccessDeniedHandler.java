@@ -9,6 +9,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/*
+    CustomAccessDeniedHandler is a custom implementation of AccessDeniedHandler that handles access denied exceptions.
+    When an authenticated user tries to access a resource they don't have permission for, this class sends a JSON response with a 403 status code and an error message.
+ */
+
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 

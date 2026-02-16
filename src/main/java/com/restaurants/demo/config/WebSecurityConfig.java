@@ -14,7 +14,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+/**
+    Central security configuration for the application.
+    Sets up JWT authentication, role-based access control,
+    and ensures the API remains stateless.
+ */
 @Configuration
 @EnableMethodSecurity
 public class WebSecurityConfig {
@@ -23,6 +27,9 @@ public class WebSecurityConfig {
     private final AuthTokenFilter authTokenFilter;
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
+    /**
+        Inject required components used during authentication and authorization.
+     */
     public WebSecurityConfig(AuthEntryPointJwt unauthorizedHandler,
                              AuthTokenFilter authTokenFilter,
                              CustomAccessDeniedHandler accessDeniedHandler) {
@@ -31,16 +38,30 @@ public class WebSecurityConfig {
         this.accessDeniedHandler = accessDeniedHandler;
     }
 
+    /*
+        Builds the AuthenticationManager so Spring can use it anywhere in the app.
+        This is what checks users’ login credentials and decides if they can sign in.
+    */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
+    /*
+        Defines the password encoder to securely hash user passwords.
+        BCrypt is a strong hashing algorithm that adds salt to protect against rainbow table attacks.
+    */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+
+    /*
+        Configures the security filter chain, which is the core of Spring Security.
+        It defines how requests are secured, which endpoints require authentication,
+        and how to handle unauthorized access.
+    */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())

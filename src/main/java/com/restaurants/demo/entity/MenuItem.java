@@ -6,6 +6,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/*
+    MenuItem is an entity class that represents a menu item in the restaurant.
+*/
 @Entity
 @Table(name = "menu_items")
 @Getter

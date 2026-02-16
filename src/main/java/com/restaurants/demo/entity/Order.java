@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    Order is an entity class that represents a customer's order in the restaurant. It contains information about the table number, order status, total amount, and the list of ordered items.
+*/
+
 @Entity
 @Getter
 @Setter

@@ -11,7 +11,6 @@ import java.time.LocalTime;
 // This class defines JPA Specifications for building dynamic queries.
 // Specifications to add optional WHERE conditions and
 // combine them using AND without writing SQL queries.
-
 public class OrderSpecification {
 
     public static Specification<Order> hasStatus(OrderStatus status) {

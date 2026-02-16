@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 
+/*
+    UserDetailsServiceImpl is a custom implementation of Spring Security's UserDetailsService.
+    It loads user details from the database using the UserRepository and converts them into a format that Spring Security can use for authentication and authorization.
+ */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 

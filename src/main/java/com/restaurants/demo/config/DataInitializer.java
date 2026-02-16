@@ -3,6 +3,8 @@ package com.restaurants.demo.config;
 import com.restaurants.demo.entity.ERole;
 import com.restaurants.demo.entity.User;
 import com.restaurants.demo.repository.UserRepository;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,12 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.admin.password}")
+    private String rawPassword;
 
     /**
      * Constructor injection for required beans.
@@ -35,8 +43,6 @@ public class DataInitializer implements CommandLineRunner {
             
             // Step 2: Create the default Admin user
             // We use the email field as the unique identifier as per your SQL schema
-            String adminEmail = "admin@gmail.com";
-            String rawPassword = "admin123";
             
             // Securely hash the password before persistence
             User admin = new User(

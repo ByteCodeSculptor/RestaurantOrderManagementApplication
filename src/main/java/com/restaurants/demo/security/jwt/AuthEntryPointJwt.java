@@ -11,6 +11,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/*
+	AuthEntryPointJwt is a custom implementation of AuthenticationEntryPoint that handles unauthorized access attempts.
+	When an unauthenticated user tries to access a protected resource, this class sends a JSON response with a 401 status code and an error message.
+ */
 @Component
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 

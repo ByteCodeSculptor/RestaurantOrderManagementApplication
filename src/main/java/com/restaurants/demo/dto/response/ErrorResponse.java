@@ -3,6 +3,11 @@ package com.restaurants.demo.dto.response;
 
 import java.time.LocalDateTime;
 
+
+/*
+    ErrorResponse is a simple DTO used to represent error responses in the application. It contains the HTTP status code, an error message, and a timestamp indicating when the error occurred.
+*/
+
 public class ErrorResponse {
 
     private int status;
