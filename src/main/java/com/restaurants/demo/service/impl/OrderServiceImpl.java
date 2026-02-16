@@ -6,7 +6,6 @@ import com.restaurants.demo.dto.response.DailyReportResponse;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
-import com.restaurants.demo.exception.CustomException;
 import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.repository.OrderRepository;
 import com.restaurants.demo.service.OrderService;

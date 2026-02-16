@@ -1,0 +1,29 @@
+{
+    "version": "2",
+    "app_name": "RestaurantOrderManagementApplication",
+    "base_images": [],
+    "app_image": {
+        "name": "restaurantordermanagementapplication",
+        "include_github_token": false,
+        "github_token_arg_name": "githubkey",
+        "build_args": {}
+    },
+    "dependencies": [],
+    "ports": [
+        "8080:8080"
+    ],
+    "pre_build_commands": [],
+    "mounts": [
+        {
+            "type": "bind",
+            "source": "src",
+            "target": "/www/app/src"
+        }
+    ],
+    "subdomain": [
+        "RestaurantOrderManagementApplication"
+    ],
+    "worker_config": null,
+    "default_shell": "bash",
+    "user_defined_commands": {}
+}
