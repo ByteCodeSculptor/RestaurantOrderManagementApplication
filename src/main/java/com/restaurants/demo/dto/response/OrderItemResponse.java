@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 */ 
 
 @Getter
-@Setter
 @Builder
 public class OrderItemResponse {
     private Long id;

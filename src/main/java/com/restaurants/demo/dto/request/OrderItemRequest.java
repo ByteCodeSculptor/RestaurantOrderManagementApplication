@@ -6,7 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /*
-    OrderItemRequest is a DTO used to represent an item in an order. It contains the menu item ID and the quantity ordered.
+    OrderItemRequest is a DTO used to represent an item in an order. It contains the menu
+    item ID and the quantity ordered.
  */
 @Getter
 @Setter

@@ -10,7 +10,8 @@ import lombok.Setter;
 import java.util.List;
 
 /*
-    OrderRequest is a DTO used for placing new orders. It contains the table number and a list of ordered items, each represented by an OrderItemRequest.
+    OrderRequest is a DTO used for placing new orders. It contains the table number and a list
+    of ordered items, each represented by an OrderItemRequest.
  */
 @Getter
 @Setter
