@@ -3,11 +3,13 @@ package com.restaurants.demo.controller;
 import com.restaurants.demo.dto.request.AvailabilityRequest;
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
+import com.restaurants.demo.exception.ApiResponse;
 import com.restaurants.demo.service.MenuService;
 import com.restaurants.demo.util.ResponseHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,10 +25,9 @@ public class MenuController {
         Admin-only endpoints for create items.
      */
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
-    public ResponseEntity<?> createMenuItem(@Valid @RequestBody MenuRequest request) {
-        MenuResponse response = menuService.createMenuItem(request);
-        return ResponseHelper.success(response, "Menu item created successfully");
+    @PostMapping 
+    public ResponseEntity<ApiResponse<MenuResponse>> createMenuItem(@Valid @RequestBody MenuRequest request) {
+        return menuService.createMenuItem(request);
     }
 
     /*
@@ -34,9 +35,8 @@ public class MenuController {
     */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateMenuItem(@PathVariable Long id, @Valid @RequestBody MenuRequest request){
-        MenuResponse response = menuService.updateMenuItem(id, request);
-        return ResponseHelper.success(response, "Menu item updated successfully");
+    public ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(@PathVariable Long id, @Valid @RequestBody MenuRequest request){
+        return menuService.updateMenuItem(id, request);
     }
 
     /*
@@ -44,9 +44,8 @@ public class MenuController {
     */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteMenuItem(@PathVariable Long id){
-        menuService.deleteMenuItem(id);
-        return ResponseHelper.success("Menu item deleted successfully");
+    public ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(@PathVariable Long id){
+        return menuService.deleteMenuItem(id);
     }
 
 
@@ -55,9 +54,8 @@ public class MenuController {
     */
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/availability")
-    public ResponseEntity<?> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
-        MenuResponse response = menuService.updateAvailability(id, request.getAvailable());
-        return ResponseHelper.success(response, "Availability updated successfully");
+    public ResponseEntity<ApiResponse<MenuResponse>> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
+        return menuService.updateAvailability(id, request.getAvailable());
     }
 
     /*
@@ -65,12 +63,11 @@ public class MenuController {
     */
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     @GetMapping
-    public ResponseEntity<?> getMenuItems(
+    public ResponseEntity<ApiResponse<Page<MenuResponse>>> getMenuItems(
             @RequestParam(required = false) Boolean available,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ){
-        Page<MenuResponse> response = menuService.getMenuItems(available, page, size);
-        return ResponseHelper.success(response, "Menu items fetched successfully");
+        return  menuService.getMenuItems(available, page, size);
     }
 }

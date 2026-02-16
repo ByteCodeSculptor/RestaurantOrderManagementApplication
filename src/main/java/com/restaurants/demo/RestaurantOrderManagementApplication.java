@@ -10,5 +10,4 @@ public class RestaurantOrderManagementApplication {
 		//this to check the first Pull request
 		SpringApplication.run(RestaurantOrderManagementApplication.class, args);
 	}
-
 }
