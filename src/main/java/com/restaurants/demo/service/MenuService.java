@@ -1,6 +1,7 @@
 package com.restaurants.demo.service;
 
 import com.restaurants.demo.dto.request.MenuRequest;
+import com.restaurants.demo.dto.response.AvailabilityResponse;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.util.ApiResponse;
 import org.springframework.data.domain.Page;
@@ -19,7 +20,7 @@ public interface MenuService {
 
     void deleteMenuItem(Long id);
 
-    MenuResponse updateAvailability(Long id, Boolean available);
+    AvailabilityResponse updateAvailability(Long id, Boolean available);
 
     Page<MenuResponse> getMenuItems(Pageable pageable, Boolean available);
 }
