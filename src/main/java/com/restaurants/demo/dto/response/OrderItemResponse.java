@@ -18,6 +18,6 @@ public class OrderItemResponse {
     private Long menuItemId;
     private String menuItemName;
     private Integer quantity;
-    private BigDecimal priceAtOrderTime;
-    private BigDecimal subtotal;
+    private Long priceAtOrderTime;
+    private Long subtotal;
 }

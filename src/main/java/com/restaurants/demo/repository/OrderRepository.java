@@ -15,7 +15,7 @@ import java.util.List;
     It extends JpaRepository, providing basic CRUD operations, and JpaSpecificationExecutor for advanced querying capabilities.
  */
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
-    @Query("SELECT COALESCE(SUM(o.totalAmountInCents), 0) FROM Order o WHERE o.createdAt BETWEEN :start AND :end")
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.createdAt BETWEEN :start AND :end")
     Long sumTotalAmountBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     Long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);

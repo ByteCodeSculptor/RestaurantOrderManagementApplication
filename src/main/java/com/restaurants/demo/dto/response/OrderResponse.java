@@ -19,6 +19,6 @@ public class OrderResponse {
     private Integer tableNumber;
     private OrderStatus status;
     private List<OrderItemResponse> items;
-    private BigDecimal totalAmount;
+    private Long totalAmount;
     private LocalDateTime createdAt;
 }

@@ -4,6 +4,7 @@ import com.restaurants.demo.dto.request.OrderItemRequest;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
+import com.restaurants.demo.exception.ResourceNotAvailableException;
 import com.restaurants.demo.exception.ResourceNotFoundException;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class OrderItemsUtil {
         }
 
         if (!menuItem.getAvailable()) {
-            throw new RuntimeException("Menu item not available!");
+            throw new ResourceNotAvailableException("Menu item currently not available!");
         }
 
         Long price = menuItem.getPrice();
@@ -29,9 +30,9 @@ public class OrderItemsUtil {
                 .order(order)
                 .menuItem(menuItem)
                 .menuItemName(menuItem.getName())
-                .priceAtOrderTimeInCents(price)
+                .priceAtOrderTime(price)
                 .quantity(quantity)
-                .subtotalInCents(subtotal)
+                .subtotal(subtotal)
                 .build();
     }
 
@@ -43,8 +44,8 @@ public class OrderItemsUtil {
         existingItem.setQuantity(newQuantity);
 
         // Recalculate based on the ORIGINAL price at order time (Price locking)
-        Long newSubtotal = existingItem.getPriceAtOrderTimeInCents() * newQuantity;
-        existingItem.setSubtotalInCents(newSubtotal);
+        Long newSubtotal = existingItem.getPriceAtOrderTime() * newQuantity;
+        existingItem.setSubtotal(newSubtotal);
     }
 
     /**
