@@ -3,13 +3,8 @@ package com.restaurants.demo.service;
 import com.restaurants.demo.dto.request.OrderRequest;
 import com.restaurants.demo.dto.response.DailyReportResponse;
 import com.restaurants.demo.dto.response.OrderResponse;
-import com.restaurants.demo.entity.Order;
-import com.restaurants.demo.exception.ApiResponse;
 import com.restaurants.demo.util.OrderStatus;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -23,21 +18,21 @@ import java.util.List;
  * - Generating a daily report of orders
  */
 public interface OrderService {
-    ResponseEntity<ApiResponse<OrderResponse>> createOrder (OrderRequest orderRequest);
+    OrderResponse createOrder (OrderRequest request);
 
-    ResponseEntity<ApiResponse<List<OrderResponse>>> getOrders (OrderStatus status,
-                                                                Integer tableNumber,
-                                                                LocalDate startDate,
-                                                                LocalDate endDate,
-                                                                Pageable pageable);
+    List<OrderResponse> getOrders (OrderStatus status,
+                                   Integer tableNumber,
+                                   LocalDate startDate,
+                                   LocalDate endDate,
+                                   Pageable pageable);
 
-    ResponseEntity<ApiResponse<OrderResponse>> getOrderById (Long orderId);
+    OrderResponse getOrderById (Long orderId);
 
-    ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (Long orderId, OrderStatus status);
+    OrderResponse updateOrderStatus (Long orderId, OrderStatus status);
 
-    ResponseEntity<ApiResponse<OrderResponse>> updateOrder (Long orderId, OrderRequest orderRequest);
+    OrderResponse updateOrder (Long orderId, OrderRequest orderRequest);
 
-    ResponseEntity<ApiResponse<OrderResponse>> deleteOrder (Long orderId);
+    void deleteOrder (Long orderId);
 
-    ResponseEntity<ApiResponse<DailyReportResponse>> getDailyReport (LocalDate startDate, LocalDate endDate);
+    DailyReportResponse getDailyReport (LocalDate startDate, LocalDate endDate);
 }

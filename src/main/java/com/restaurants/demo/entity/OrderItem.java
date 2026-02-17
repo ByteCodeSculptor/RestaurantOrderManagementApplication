@@ -34,11 +34,11 @@ public class OrderItem {
     private String menuItemName;
 
     @Column(name = "price_at_order_time", nullable = false)
-    private BigDecimal priceAtOrderTime;
+    private Long priceAtOrderTimeInCents;
 
     @Column(nullable = false)
     private Integer quantity;
 
     @Column(nullable = false)
-    private BigDecimal subtotal;
+    private Long subtotalInCents;
 }

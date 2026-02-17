@@ -4,12 +4,13 @@ import com.restaurants.demo.dto.request.OrderRequest;
 import com.restaurants.demo.dto.request.OrderStatusRequest;
 import com.restaurants.demo.dto.response.DailyReportResponse;
 import com.restaurants.demo.dto.response.OrderResponse;
-import com.restaurants.demo.exception.ApiResponse;
+import com.restaurants.demo.util.ApiResponse;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,19 +21,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-/*  
-    OrderController handles all order-related endpoints, including creating orders, updating order status, and generating daily reports.
-    Access to endpoints is controlled using @PreAuthorize annotations to ensure only authorized roles can perform certain actions.
- */
+
 public class OrderController {
     private final OrderService orderService;
-    /*
-        Endpoint for creating a new order. Accessible only to staff members.
-     */
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrder (@Valid @RequestBody OrderRequest orderRequest) {
-        return orderService.createOrder(orderRequest);
+    public ResponseEntity<ApiResponse<OrderResponse>> createOrder (@Valid @RequestBody OrderRequest request) {
+        OrderResponse response = orderService.createOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response,"Order Created Successfully!"));
     }
 
     // dynamic filtering controller whose access can be given to both admin and staff
@@ -43,50 +40,47 @@ public class OrderController {
                                         @RequestParam(required = false) LocalDate startDate,
                                         @RequestParam(required = false) LocalDate endDate,
                                                           Pageable pageable) {
-        return orderService.getOrders(status, tableNumber, startDate, endDate, pageable);
+        List<OrderResponse> response = orderService.getOrders(status, tableNumber, startDate, endDate, pageable);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Orders Fetched Successfully!"));
     }
 
-    /*
-        Endpoint for fetching a specific order by ID. Accessible to both admin and staff.
-     */
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById (@PathVariable Long id) {
-        return orderService.getOrderById(id);
+        OrderResponse response =  orderService.getOrderById(id);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Fetched Successfully!"));
     }
 
-    /*
-        Endpoint for updating the status of an order.
-    */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (@PathVariable Long id,
                                                             @RequestBody OrderStatusRequest orderStatusRequest) {
-        return orderService.updateOrderStatus(id, orderStatusRequest.getOrderStatus());
+        OrderResponse response =  orderService.updateOrderStatus(id, orderStatusRequest.getOrderStatus());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Status Updated Successfully!"));
     }
 
-    /*
-        Endpoint for updating the order.
-    */
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrder (@PathVariable Long id,
                                                 @Valid @RequestBody OrderRequest orderRequest) {
-        return orderService.updateOrder(id, orderRequest);
+        OrderResponse response =  orderService.updateOrder(id, orderRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Updated Successfully!"));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> deleteOrder (@PathVariable Long id) {
-        return orderService.deleteOrder(id);
+        orderService.deleteOrder(id);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Order Deleted Successfully!"));
     }
 
-    /*
-        Endpoint for generating a daily report of orders. Accessible only to admin users.
-    */
+
     @GetMapping("/reports")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DailyReportResponse>> getDailyReport (LocalDate startDate, LocalDate endDate) {
-        return orderService.getDailyReport(startDate, endDate);
+        DailyReportResponse response =  orderService.getDailyReport(startDate, endDate);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Report Fetched Successfully!"));
     }
 }

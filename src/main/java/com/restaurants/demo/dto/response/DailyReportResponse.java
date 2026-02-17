@@ -13,6 +13,6 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 public class DailyReportResponse {
-    private BigDecimal totalRevenue;
+    private double totalRevenue;
     private Long totalOrders;
 }
