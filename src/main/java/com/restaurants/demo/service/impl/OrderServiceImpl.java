@@ -8,6 +8,7 @@ import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
 import com.restaurants.demo.exception.InvalidTransitionException;
+import com.restaurants.demo.exception.ResourceNotAvailableException;
 import com.restaurants.demo.exception.ResourceNotFoundException;
 import com.restaurants.demo.mapper.OrderMapper;
 import com.restaurants.demo.repository.MenuItemRepository;
@@ -58,7 +59,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
 
         if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("Table is closed!");
+            throw new ResourceNotAvailableException("Table is not available for order updation!");
         }
 
         Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
@@ -148,16 +149,12 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.atTime(LocalTime.MAX);
 
-        Long totalRevenueInCents = orderRepository.sumTotalAmountBetween(start, end);
-        totalRevenueInCents = totalRevenueInCents == null ? 0L : totalRevenueInCents;
+        Long totalRevenue = orderRepository.sumTotalAmountBetween(start, end);
+        totalRevenue = totalRevenue == null ? 0L : totalRevenue;
 
         long count = orderRepository.countByCreatedAtBetween(start, end);
 
-        double revenue = BigDecimal.valueOf(totalRevenueInCents)
-                .movePointLeft(2)
-                .doubleValue();
-
-        return new DailyReportResponse(revenue, count);
+        return new DailyReportResponse(totalRevenue, count);
     }
 
     private Map<Long, MenuItem> fetchAndValidateMenuItems(List<OrderItemRequest> itemRequests) {

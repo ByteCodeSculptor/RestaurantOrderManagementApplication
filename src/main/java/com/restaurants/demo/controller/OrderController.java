@@ -56,7 +56,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (@PathVariable Long id,
                                                             @RequestBody OrderStatusRequest orderStatusRequest) {
-        OrderResponse response =  orderService.updateOrderStatus(id, orderStatusRequest.getOrderStatus());
+        OrderResponse response =  orderService.updateOrderStatus(id, orderStatusRequest.getStatus());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Status Updated Successfully!"));
     }
 

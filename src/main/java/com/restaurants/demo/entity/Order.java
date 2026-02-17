@@ -20,10 +20,6 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // SENIOR FIX: Optimistic Locking to prevent concurrent overwrite
-    @Version
-    private Integer version;
-
     @Column(name = "table_number", nullable = false)
     private Integer tableNumber;
 
@@ -35,7 +31,7 @@ public class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "total_amount", nullable = false)
-    private Long totalAmountInCents = 0L; // Initialize to 0
+    private Long totalAmount = 0L;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -47,13 +43,13 @@ public class Order {
 
     public void addItem(OrderItem item) {
         this.items.add(item);
-        item.setOrder(this); // Manage bidirectional relationship
+        item.setOrder(this);
         recalculateTotal();
     }
 
     public void recalculateTotal() {
-        this.totalAmountInCents = this.items.stream()
-                .mapToLong(OrderItem::getSubtotalInCents)
+        this.totalAmount = this.items.stream()
+                .mapToLong(OrderItem::getSubtotal)
                 .sum();
     }
 }
