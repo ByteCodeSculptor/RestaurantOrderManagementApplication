@@ -2,6 +2,7 @@ package com.restaurants.demo.controller;
 
 import com.restaurants.demo.dto.request.AvailabilityRequest;
 import com.restaurants.demo.dto.request.MenuRequest;
+import com.restaurants.demo.dto.response.AvailabilityResponse;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.util.ApiResponse;
 import com.restaurants.demo.service.MenuService;
@@ -40,14 +41,14 @@ public class MenuController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(@PathVariable Long id){
         menuService.deleteMenuItem(id);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Menu Deleted Successfully"));
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(ApiResponse.success(null,"Menu Deleted Successfully"));
     }
 
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/availability")
-    public ResponseEntity<ApiResponse<MenuResponse>> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
-        MenuResponse response = menuService.updateAvailability(id, request.getAvailable());
+    public ResponseEntity<ApiResponse<AvailabilityResponse>> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
+        AvailabilityResponse response = menuService.updateAvailability(id, request.getAvailable());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Availability Updated Successfully"));
     }
 

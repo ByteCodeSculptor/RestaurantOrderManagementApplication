@@ -1,6 +1,7 @@
 package com.restaurants.demo.service.impl;
 
 import com.restaurants.demo.dto.request.MenuRequest;
+import com.restaurants.demo.dto.response.AvailabilityResponse;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.exception.DuplicateResourceException;
@@ -50,14 +51,14 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public MenuResponse updateAvailability(Long id, Boolean available){
+    public AvailabilityResponse updateAvailability(Long id, Boolean available){
         MenuItem menuItem = menuItemRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Menu Item Not Found with Id: " + id));
 
         menuItem.setAvailable(available);
 
         menuItemRepository.save(menuItem);
 
-        return menuMapper.toResponse(menuItem);
+        return menuMapper.toAvailabilityResponse(menuItem);
     }
 
     @Override
