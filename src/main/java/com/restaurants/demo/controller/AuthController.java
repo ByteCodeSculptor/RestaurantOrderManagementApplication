@@ -13,7 +13,7 @@ import com.restaurants.demo.dto.request.LoginRequest;
 import com.restaurants.demo.dto.request.SignupRequest;
 import com.restaurants.demo.dto.response.BulkRegistrationResponse;
 import com.restaurants.demo.dto.response.JwtResponse;
-import com.restaurants.demo.dto.response.MessageResponse;
+import com.restaurants.demo.exception.ApiResponse;
 import com.restaurants.demo.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -27,15 +27,15 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/auth/login")
-    public ResponseEntity<MessageResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<JwtResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         JwtResponse response = authService.authenticateUser(loginRequest);
-        return ResponseEntity.ok(new MessageResponse("Successfully logged in", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Successfully logged in", response));
     }
 
     @PostMapping("/admin/register")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BulkRegistrationResponse> registerUsers(@Valid @RequestBody List<SignupRequest> signUpRequests) {
+    public ResponseEntity<ApiResponse<BulkRegistrationResponse>> registerUsers(@Valid @RequestBody List<SignupRequest> signUpRequests) {
         BulkRegistrationResponse response = authService.registerUsers(signUpRequests);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Successfully registered users with failures logged", response));
     }
 }

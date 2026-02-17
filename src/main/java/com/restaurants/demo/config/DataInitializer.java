@@ -1,13 +1,13 @@
 package com.restaurants.demo.config;
 
-import com.restaurants.demo.entity.ERole;
-import com.restaurants.demo.entity.User;
-import com.restaurants.demo.repository.UserRepository;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import com.restaurants.demo.entity.ERole;
+import com.restaurants.demo.entity.User;
+import com.restaurants.demo.repository.UserRepository;
 
 /**
  * DataInitializer class to bootstrap the application with initial data.
@@ -48,7 +48,8 @@ public class DataInitializer implements CommandLineRunner {
             User admin = new User(
                 adminEmail,
                 passwordEncoder.encode(rawPassword),
-                ERole.ADMIN // Assigning the ADMIN role from the enum
+                ERole.ADMIN, // Assigning the ADMIN role from the enum
+                0, true, null
             );
 
             // Step 3: Persist the admin user to the MySQL database

@@ -1,5 +1,7 @@
 package com.restaurants.demo.dto.response;
 
+import java.util.List;
+
 import lombok.Data;
 
 
@@ -11,11 +13,11 @@ public class JwtResponse {
     private String token;
     private String type = "Bearer";
     private String email;
-    private String role;
+    private List<String> roles;
 
-    public JwtResponse(String accessToken, String email, String role) {
+    public JwtResponse(String accessToken, String email, List<String> roles) {
         this.token = accessToken;
         this.email = email;
-        this.role = role;
+        this.roles = roles;
     }
 }
