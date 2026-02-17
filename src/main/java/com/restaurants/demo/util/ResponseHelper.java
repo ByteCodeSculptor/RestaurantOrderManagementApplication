@@ -1,7 +1,6 @@
 package com.restaurants.demo.util;
 
 
-import com.restaurants.demo.exception.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 

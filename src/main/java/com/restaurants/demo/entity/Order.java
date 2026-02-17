@@ -6,15 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-/*
-    Order is an entity class that represents a customer's order in the restaurant. It contains
-    information about the table number, order status, total amount, and the list of ordered items.
-*/
 
 @Entity
 @Getter
@@ -26,11 +20,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // SENIOR FIX: Optimistic Locking to prevent concurrent overwrite
+    @Version
+    private Integer version;
+
     @Column(name = "table_number", nullable = false)
     private Integer tableNumber;
-
-    @Column(name = "is_table_open", nullable = false)
-    private Boolean isTableOpen;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -40,14 +35,25 @@ public class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;
+    private Long totalAmountInCents = 0L; // Initialize to 0
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
-    private void onCreate () {
+    private void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.isTableOpen = true;
+    }
+
+    public void addItem(OrderItem item) {
+        this.items.add(item);
+        item.setOrder(this); // Manage bidirectional relationship
+        recalculateTotal();
+    }
+
+    public void recalculateTotal() {
+        this.totalAmountInCents = this.items.stream()
+                .mapToLong(OrderItem::getSubtotalInCents)
+                .sum();
     }
 }

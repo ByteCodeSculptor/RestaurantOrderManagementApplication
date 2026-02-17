@@ -19,7 +19,7 @@ public class MenuRequest {
 
     @NotNull(message = "Price is required")
     @Positive(message = "Price must be positive")
-    private BigDecimal price;
+    private Long price;
 
     @NotNull(message = "Availability is required")
     private Boolean available;

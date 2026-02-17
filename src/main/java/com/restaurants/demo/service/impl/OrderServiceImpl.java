@@ -7,31 +7,31 @@ import com.restaurants.demo.dto.response.OrderResponse;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
 import com.restaurants.demo.entity.OrderItem;
-import com.restaurants.demo.exception.ApiResponse;
+import com.restaurants.demo.exception.InvalidTransitionException;
+import com.restaurants.demo.exception.ResourceNotFoundException;
 import com.restaurants.demo.mapper.OrderMapper;
 import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.repository.OrderRepository;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.specification.OrderSpecification;
+import com.restaurants.demo.util.OrderItemsUtil;
 import com.restaurants.demo.util.OrderStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
@@ -39,209 +39,140 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
 
     @Override
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrder(OrderRequest orderRequest) {
-        try {
-            Order order = new Order();
-            order.setTableNumber(orderRequest.getTableNumber());
-            order.setStatus(OrderStatus.PLACED);
+    public OrderResponse createOrder(OrderRequest request) {
+        Order order = new Order();
+        order.setTableNumber(request.getTableNumber());
+        order.setStatus(OrderStatus.PLACED);
 
-            List<OrderItem> items = new ArrayList<>();
-            BigDecimal total = BigDecimal.ZERO;
+        Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
 
-            // Map fields of orderItemRequest with the OrderItem entity
-            for (OrderItemRequest item : orderRequest.getItems()) {
-                MenuItem menuItem = menuItemRepository.findById(item.getMenuItemId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Menu item not found!"));
+        OrderItemsUtil.processNewOrderItems(order, request.getItems(), menuItemMap);
 
-                if (!menuItem.getAvailable()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, menuItem.getName() + " is not available!");
-                }
-
-                OrderItem orderItem = OrderItem.builder()
-                        .order(order)
-                        .menuItem(menuItem)
-                        .menuItemName(menuItem.getName())
-                        .priceAtOrderTime(menuItem.getPrice())
-                        .quantity(item.getQuantity())
-                        .build();
-
-                // Subtotal of each item is quantity x price
-                BigDecimal subtotal = menuItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
-                orderItem.setSubtotal(subtotal);
-
-                items.add(orderItem);
-                total = total.add(subtotal);
-            }
-
-            order.setItems(items);
-            order.setTotalAmount(total);
-
-            Order newOrder = orderRepository.save(order);
-
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Order created Successfully", orderMapper.toResponse(newOrder)));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to created order", null));
-        }
+        Order savedOrder = orderRepository.save(order);
+        return orderMapper.toResponse(savedOrder);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrders(OrderStatus status,
-                                 Integer tableNumber,
-                                 LocalDate startDate,
-                                 LocalDate endDate,
-                                 Pageable pageable) {
-        try {
-            // All filters must be satisfied; specification resembles WHERE queries in SQL
-            Specification<Order> spec = Specification.allOf(
-                    OrderSpecification.hasStatus(status),
-                    OrderSpecification.hasTableNumber(tableNumber),
-                    OrderSpecification.createdAfterOrEqual(startDate),
-                    OrderSpecification.createdBefore(endDate)
-            );
+    public OrderResponse updateOrder(Long orderId, OrderRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
 
-            Page<Order> orders = orderRepository.findAll(spec, pageable);
-
-            List<OrderResponse> orderResponses = new ArrayList<>();
-
-            for (Order order : orders) {
-                orderResponses.add (orderMapper.toResponse(order));
-            }
-
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Fetched orders successfully", orderResponses));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to fetch orders", null));
+        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new RuntimeException("Table is closed!");
         }
+
+        Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
+
+        Map<Long, OrderItem> existingItemMap = order.getItems().stream()
+                .collect(Collectors.toMap(
+                        item -> item.getMenuItem().getId(),
+                        item -> item
+                ));
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            OrderItem existingItem = existingItemMap.get(itemRequest.getMenuItemId());
+
+            if (existingItem != null) {
+                OrderItemsUtil.updateItemQuantity(existingItem, itemRequest.getQuantity());
+            } else {
+                MenuItem menuItem = menuItemMap.get(itemRequest.getMenuItemId());
+                OrderItem newItem = OrderItemsUtil.createOrderItem(order, menuItem, itemRequest.getQuantity());
+                order.addItem(newItem);
+            }
+        }
+
+        order.recalculateTotal();
+
+        return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Override
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(Long orderId) {
-        try {
-            Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-            OrderResponse orderResponse = orderMapper.toResponse(order);
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Fetched the order successfully", orderResponse));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to fetch order", null));
+    public OrderResponse updateOrderStatus(Long orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
+
+        boolean isValidTransition = switch (order.getStatus()) {
+            case PLACED -> status == OrderStatus.PREPARING || status == OrderStatus.CANCELLED;
+            case PREPARING -> status == OrderStatus.READY;
+            case READY -> status == OrderStatus.SERVED;
+            case SERVED -> status == OrderStatus.BILLED;
+            case CANCELLED, BILLED -> false;
+        };
+
+        if (!isValidTransition) {
+            throw new InvalidTransitionException(order.getStatus(), status);
         }
+
+        order.setStatus(status);
+        return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Override
-    public ResponseEntity<ApiResponse<OrderResponse>> updateOrder(Long orderId, OrderRequest orderRequest) {
-        try {
-            Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Order not found!"
-                    ));
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrders(OrderStatus status,
+                                         Integer tableNumber,
+                                         LocalDate startDate,
+                                         LocalDate endDate,
+                                         Pageable pageable) {
+        Specification<Order> spec = Specification.allOf(
+                OrderSpecification.hasStatus(status),
+                OrderSpecification.hasTableNumber(tableNumber),
+                OrderSpecification.createdAfterOrEqual(startDate),
+                OrderSpecification.createdBefore(endDate)
+        );
 
-            if (!order.getIsTableOpen()) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Order cannot be updated!"
-                );
-            }
-
-            order.getItems().clear();
-
-            BigDecimal total = BigDecimal.ZERO;
-
-            for (OrderItemRequest itemRequest : orderRequest.getItems()) {
-                MenuItem menuItem = menuItemRepository.findById(itemRequest.getMenuItemId())
-                        .orElseThrow(() -> new ResponseStatusException(
-                                HttpStatus.NOT_FOUND, "Menu item not found!"
-                        ));
-
-                if (!menuItem.getAvailable()) {
-                    throw new ResponseStatusException(
-                            HttpStatus.BAD_REQUEST, "Item not available!"
-                    );
-                }
-
-                OrderItem orderItem = OrderItem.builder()
-                        .order(order)
-                        .menuItem(menuItem)
-                        .menuItemName(menuItem.getName())
-                        .priceAtOrderTime(menuItem.getPrice())
-                        .quantity(itemRequest.getQuantity())
-                        .build();
-
-                BigDecimal subTotal = menuItem.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
-
-                orderItem.setSubtotal(subTotal);
-
-                order.getItems().add(orderItem);
-
-                total = total.add(subTotal);
-            }
-
-            order.setTotalAmount(total);
-
-            Order newOrder = orderRepository.save(order);
-
-            OrderResponse orderResponse = orderMapper.toResponse(newOrder);
-
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Order updated Successfully", orderResponse));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to update order", null));
-        }
+        return orderRepository.findAll(spec, pageable).stream()
+                .map(orderMapper::toResponse)
+                .toList();
     }
 
     @Override
-    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus(Long orderId, OrderStatus status) {
-        try {
-            Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-            OrderStatus currentStatus = order.getStatus();
-
-            // Check if transition is valid using switch expression
-            boolean isValidTransition = switch (currentStatus) {
-                case PLACED -> status == OrderStatus.PREPARING || status == OrderStatus.CANCELLED;
-                case PREPARING -> status == OrderStatus.READY;
-                case READY -> status == OrderStatus.SERVED;
-                case SERVED, CANCELLED -> false;
-            };
-
-            if (!isValidTransition) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid transition");
-            }
-
-            order.setStatus(status);
-            Order newOrder = orderRepository.save(order);
-
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Order status updated successfully", orderMapper.toResponse(newOrder)));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to update order status", null));
-        }
+    @Transactional(readOnly = true)
+    public OrderResponse getOrderById(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
+        return orderMapper.toResponse(order);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<OrderResponse>> deleteOrder(Long orderId) {
-        try {
-            Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found!"));
-
-            orderRepository.delete(order);
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Order deleted successfully", null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to delete order!", null));
+    public void deleteOrder(Long orderId) {
+        if (!orderRepository.existsById(orderId)) {
+           throw new ResourceNotFoundException("Order Not Found with Id: "+ orderId);
         }
+        orderRepository.deleteById(orderId);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<DailyReportResponse>> getDailyReport(LocalDate startDate, LocalDate endDate) {
-        try {
-            LocalDateTime startOfToday = startDate.atStartOfDay();
-            LocalDateTime endOfToday = endDate.atTime(LocalTime.MAX);
+    @Transactional(readOnly = true)
+    public DailyReportResponse getDailyReport(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(LocalTime.MAX);
 
-            List<Order> orders = orderRepository.findByCreatedAtBetween(startOfToday, endOfToday);
+        Long totalRevenueInCents = orderRepository.sumTotalAmountBetween(start, end);
+        totalRevenueInCents = totalRevenueInCents == null ? 0L : totalRevenueInCents;
 
-            BigDecimal totalRevenue = BigDecimal.ZERO;
+        long count = orderRepository.countByCreatedAtBetween(start, end);
 
-            for (Order order : orders) {
-                totalRevenue = totalRevenue.add(order.getTotalAmount());
-            }
+        double revenue = BigDecimal.valueOf(totalRevenueInCents)
+                .movePointLeft(2)
+                .doubleValue();
 
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Report fetched successfully", new DailyReportResponse(totalRevenue, (long) orders.size())));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to fetch report!", null));
+        return new DailyReportResponse(revenue, count);
+    }
+
+    private Map<Long, MenuItem> fetchAndValidateMenuItems(List<OrderItemRequest> itemRequests) {
+        List<Long> menuItemIds = itemRequests.stream()
+                .map(OrderItemRequest::getMenuItemId)
+                .distinct()
+                .toList();
+
+        List<MenuItem> menuItems = menuItemRepository.findAllById(menuItemIds);
+
+        if (menuItems.size() != menuItemIds.size()) {
+            throw new ResourceNotFoundException("Menu item(s) not found!");
         }
+
+        return menuItems.stream()
+                .collect(Collectors.toMap(MenuItem::getId, menuItem -> menuItem));
     }
 }

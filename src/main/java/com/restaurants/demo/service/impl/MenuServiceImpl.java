@@ -3,128 +3,85 @@ package com.restaurants.demo.service.impl;
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.entity.MenuItem;
-import com.restaurants.demo.exception.ApiResponse;
+import com.restaurants.demo.exception.DuplicateResourceException;
+import com.restaurants.demo.exception.ResourceNotFoundException;
+import com.restaurants.demo.mapper.MenuMapper;
 import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class MenuServiceImpl implements MenuService {
 
     private final MenuItemRepository menuItemRepository;
+    private final MenuMapper menuMapper;
 
     @Override
-    public ResponseEntity<ApiResponse<MenuResponse>> createMenuItem(MenuRequest request) {
-        try {
-            MenuItem menuItem = MenuItem.builder()
-                    .name(request.getName())
-                    .description(request.getDescription())
-                    .price(request.getPrice())
-                    .available(request.getAvailable())
-                    .build();
+    public MenuResponse createMenuItem(MenuRequest request) {
+        ensureMenuItemIsUnique(request.getName());
 
-            MenuItem saved = menuItemRepository.save(menuItem);
-            MenuResponse savedResponse = buildMenuResponse(saved);
+        MenuItem menuEntity = menuMapper.toEntity(request);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Menu Item Created Successfully", savedResponse));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to created Menu Item :" + e.getMessage(), null));
-        }
+        MenuItem savedMenuItem = menuItemRepository.save(menuEntity);
+
+        return menuMapper.toResponse(savedMenuItem);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(Long id, MenuRequest request) {
-        try{
-            Optional<MenuItem> optionalMenuItem = menuItemRepository.findById(id);
-            if(optionalMenuItem.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false,"MenuItem Not Found",null));
-            }
+    public MenuResponse updateMenuItem(Long id,MenuRequest request){
+        MenuItem menuItem = menuItemRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Menu Item Not Found with Id: " + id));
 
-            optionalMenuItem.get().setName(request.getName());
-            optionalMenuItem.get().setDescription(request.getDescription());
-            optionalMenuItem.get().setPrice(request.getPrice());
-            optionalMenuItem.get().setAvailable(request.getAvailable());
+        MenuItem menuEntity = menuMapper.toEntity(request);
 
-            MenuItem updated = menuItemRepository.save(optionalMenuItem.get());
-            MenuResponse updatedResponse = buildMenuResponse(updated);
+        MenuItem updatedMenuItem = menuItemRepository.save(menuEntity);
 
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"Menu Item Updated Successfully",updatedResponse));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to created Menu Item :" + e.getMessage(), null));
-        }
+        return menuMapper.toResponse(updatedMenuItem);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(Long id) {
-        try{
-            Optional<MenuItem> optionalMenuItem = menuItemRepository.findById(id);
+    public void deleteMenuItem(Long id){
+        MenuItem menuItem = menuItemRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Menu Item Not Found with Id: " + id));
 
-            if(optionalMenuItem.isEmpty()){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false,"MenuItem Not Found",null));
-            }
-            menuItemRepository.delete(optionalMenuItem.get());
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true,"MenuItem Deleted Successfully",null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to Delete Menu Item :" + e.getMessage(), null));
-        }
+        menuItemRepository.delete(menuItem);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<MenuResponse>> updateAvailability(Long id, Boolean available) {
-        try{
-            Optional<MenuItem> optionalMenuItem = menuItemRepository.findById(id);
+    public MenuResponse updateAvailability(Long id, Boolean available){
+        MenuItem menuItem = menuItemRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Menu Item Not Found with Id: " + id));
 
-            if(optionalMenuItem.isEmpty()){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false,"MenuItem Not Found",null));
-            }
+        menuItem.setAvailable(available);
 
-            optionalMenuItem.get().setAvailable(available);
-            MenuItem updated = menuItemRepository.save(optionalMenuItem.get());
+        menuItemRepository.save(menuItem);
 
-            MenuResponse updatedResponse =  buildMenuResponse(updated);
-
-            return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(true, "Menu Item Updated Successfully", updatedResponse));
-        }catch(Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to Updated Menu Item :" + e.getMessage(), null));
-        }
+        return menuMapper.toResponse(menuItem);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Page<MenuResponse>>> getMenuItems(Boolean available, int page, int size) {
-        try{
-            Pageable pageable = PageRequest.of(page, size);
-            Page<MenuItem> menuPage;
+    public Page<MenuResponse> getMenuItems(Pageable pageable, Boolean available){
+        Page<MenuItem> menuItemPage;
 
-            if (available != null) {
-                menuPage = menuItemRepository.findByAvailable(available, pageable);
-            } else {
-                menuPage = menuItemRepository.findAll(pageable);
-            }
-            Page<MenuResponse> responsePage = menuPage.map(this::buildMenuResponse);
+        if(available != null){
+            menuItemPage = menuItemRepository.findByAvailable(available,pageable);
+        }else{
+            menuItemPage = menuItemRepository.findAll(pageable);
+        }
 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to Updated Menu Item", responsePage));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiResponse<>(false, "Failed to Updated Menu Item :" + e.getMessage(), null));
+        return menuItemPage.map(menuMapper::toResponse);
+    }
+
+    private void ensureMenuItemIsUnique(String name) {
+
+        String normalizedName = name.trim().toLowerCase();
+
+        if (menuItemRepository.existsByNameIgnoreCase(normalizedName)) {
+            throw new DuplicateResourceException(
+                    "Menu item already exists with name: " + name
+            );
         }
     }
 
-    // Reusable helper method to build MenuResponse
-    private MenuResponse buildMenuResponse(MenuItem menuItem) {
-        return MenuResponse.builder()
-                .id(menuItem.getId())
-                .name(menuItem.getName())
-                .description(menuItem.getDescription())
-                .price(menuItem.getPrice())
-                .available(menuItem.getAvailable())
-                .build();
-    }
 }

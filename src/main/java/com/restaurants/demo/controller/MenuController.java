@@ -3,11 +3,13 @@ package com.restaurants.demo.controller;
 import com.restaurants.demo.dto.request.AvailabilityRequest;
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
-import com.restaurants.demo.exception.ApiResponse;
+import com.restaurants.demo.util.ApiResponse;
 import com.restaurants.demo.service.MenuService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,53 +21,44 @@ public class MenuController {
 
     private final MenuService menuService;
 
-    /*
-        Admin-only endpoints for create items.
-     */
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping 
+    @PostMapping
     public ResponseEntity<ApiResponse<MenuResponse>> createMenuItem(@Valid @RequestBody MenuRequest request) {
-        return menuService.createMenuItem(request);
+        MenuResponse response = menuService.createMenuItem(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response,"Menu Created Successfully"));
     }
 
-    /*
-        Admin-only endpoints for update and delete items.
-    */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(@PathVariable Long id, @Valid @RequestBody MenuRequest request){
-        return menuService.updateMenuItem(id, request);
+        MenuResponse response = menuService.updateMenuItem(id,request);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Menu Updated Successfully"));
     }
 
-    /*
-        Admin-only endpoint for deleting menu items.
-    */
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(@PathVariable Long id){
-        return menuService.deleteMenuItem(id);
+        menuService.deleteMenuItem(id);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Menu Deleted Successfully"));
     }
 
 
-    /*
-        Admin-only endpoint for updating availability of menu items.
-    */
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/availability")
     public ResponseEntity<ApiResponse<MenuResponse>> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
-        return menuService.updateAvailability(id, request.getAvailable());
+        MenuResponse response = menuService.updateAvailability(id, request.getAvailable());
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Availability Updated Successfully"));
     }
 
-    /*
-        Endpoint for fetching menu items with optional filtering by availability. Accessible to both admin and staff.
-    */
+
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<MenuResponse>>> getMenuItems(
             @RequestParam(required = false) Boolean available,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            Pageable pageable
     ){
-        return  menuService.getMenuItems(available, page, size);
+        Page<MenuResponse> response =  menuService.getMenuItems(pageable, available);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Menu Items Fetched Successfully!"));
     }
 }

@@ -2,8 +2,9 @@ package com.restaurants.demo.service;
 
 import com.restaurants.demo.dto.request.MenuRequest;
 import com.restaurants.demo.dto.response.MenuResponse;
-import com.restaurants.demo.exception.ApiResponse;
+import com.restaurants.demo.util.ApiResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 /*
@@ -12,13 +13,13 @@ import org.springframework.http.ResponseEntity;
  */
 public interface MenuService {
 
-    ResponseEntity<ApiResponse<MenuResponse>> createMenuItem(MenuRequest request);
+    MenuResponse createMenuItem(MenuRequest request);
 
-    ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(Long id,MenuRequest request);
+    MenuResponse updateMenuItem(Long id,MenuRequest request);
 
-    ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(Long id);
+    void deleteMenuItem(Long id);
 
-    ResponseEntity<ApiResponse<MenuResponse>> updateAvailability(Long id, Boolean available);
+    MenuResponse updateAvailability(Long id, Boolean available);
 
-    ResponseEntity<ApiResponse<Page<MenuResponse>>> getMenuItems(Boolean available, int page, int size);
+    Page<MenuResponse> getMenuItems(Pageable pageable, Boolean available);
 }
