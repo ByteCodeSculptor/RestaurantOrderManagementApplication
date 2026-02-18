@@ -1,6 +1,15 @@
 package com.restaurants.demo.entity;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -33,9 +42,21 @@ public class User {
     @Column(nullable = false)
     private ERole role;
 
-    public User(String email, String password, ERole role) {
+    @Column(name = "failed_attempts", nullable = false)
+    private int failedAttempts = 0;
+
+    @Column(name = "account_non_locked", nullable = false)
+    private boolean accountNonLocked = true;
+
+    @Column(name = "lockout_time")
+    private LocalDateTime lockoutTime;
+
+    public User(String email, String password, ERole role , int failedAttempts, boolean accountNonLocked, LocalDateTime lockoutTime) {
         this.email = email;
         this.password = password;
         this.role = role;
+        this.failedAttempts = failedAttempts;
+        this.accountNonLocked = accountNonLocked;
+        this.lockoutTime = lockoutTime;
     }
 }

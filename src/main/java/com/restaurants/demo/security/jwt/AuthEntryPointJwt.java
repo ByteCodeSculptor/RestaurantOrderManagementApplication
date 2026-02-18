@@ -1,37 +1,41 @@
 package com.restaurants.demo.security.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.restaurants.demo.dto.response.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
+import java.io.IOException;
+
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.restaurants.demo.util.ApiResponse;
 
-/*
-	AuthEntryPointJwt is a custom implementation of AuthenticationEntryPoint that handles unauthorized access attempts.
-	When an unauthenticated user tries to access a protected resource, this class sends a JSON response with a 401 status code and an error message.
- */
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
-	@Override
-	public void commence(HttpServletRequest request,
-						 HttpServletResponse response,
-						 AuthenticationException authException)
-			throws IOException {
+    //Inject the Spring-managed ObjectMapper to ensure consistent date/time serialization
+    private final ObjectMapper objectMapper;
 
-		response.setContentType("application/json");
-		response.setStatus(HttpStatus.UNAUTHORIZED.value());
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, 
+                         AuthenticationException authException) throws IOException {
 
-		ErrorResponse error = new ErrorResponse(
-				HttpStatus.UNAUTHORIZED.value(),
-				"Unauthorized - Please login"
-		);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-		new ObjectMapper().writeValue(response.getOutputStream(), error);
-	}
+
+
+		ApiResponse<Object> apiResponse = ApiResponse.builder()
+				.success(false)
+				.message("Unauthorized - " + authException.getMessage())
+				.data(null)
+				.build();
+
+        objectMapper.writeValue(response.getOutputStream(), apiResponse);
+    }
 }
