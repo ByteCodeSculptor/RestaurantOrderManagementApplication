@@ -7,6 +7,7 @@ import com.restaurants.demo.dto.response.MenuResponse;
 import com.restaurants.demo.util.ApiResponse;
 import com.restaurants.demo.service.MenuService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,9 +40,9 @@ public class MenuController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<MenuResponse>> deleteMenuItem(@PathVariable Long id){
+    public ResponseEntity<ApiResponse<Void>> deleteMenuItem(@PathVariable Long id){
         menuService.deleteMenuItem(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(ApiResponse.success(null,"Menu Deleted Successfully"));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Menu Deleted Successfully"));
     }
 
 
@@ -60,6 +61,6 @@ public class MenuController {
             Pageable pageable
     ){
         Page<MenuResponse> response =  menuService.getMenuItems(pageable, available);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Menu Items Fetched Successfully!"));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Menu Items Fetched Successfully"));
     }
 }

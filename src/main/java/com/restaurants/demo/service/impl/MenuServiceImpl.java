@@ -9,6 +9,7 @@ import com.restaurants.demo.exception.ResourceNotFoundException;
 import com.restaurants.demo.mapper.MenuMapper;
 import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.service.MenuService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,14 +34,17 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @Transactional
     public MenuResponse updateMenuItem(Long id,MenuRequest request){
         MenuItem menuItem = menuItemRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Menu Item Not Found with Id: " + id));
 
+        if(!menuItem.getName().equalsIgnoreCase(request.getName().trim())){
+            ensureMenuItemIsUnique(request.getName());
+        }
+
         MenuItem menuEntity = menuMapper.toEntity(request);
 
-        MenuItem updatedMenuItem = menuItemRepository.save(menuEntity);
-
-        return menuMapper.toResponse(updatedMenuItem);
+        return menuMapper.toResponse(menuEntity);
     }
 
     @Override
