@@ -6,5 +6,15 @@ public enum OrderStatus {
     READY,
     SERVED,
     CANCELLED,
-    BILLED
+    BILLED;
+
+    public boolean canTransitionTo (OrderStatus nextStatus) {
+        return switch (this) {
+            case PLACED -> nextStatus == PREPARING || nextStatus == CANCELLED;
+            case PREPARING -> nextStatus == READY;
+            case READY -> nextStatus == SERVED;
+            case SERVED -> nextStatus == BILLED;
+            case CANCELLED, BILLED -> false;
+        };
+    }
 }

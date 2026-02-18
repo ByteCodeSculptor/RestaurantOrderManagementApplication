@@ -1,6 +1,7 @@
 package com.restaurants.demo.repository;
 
 import com.restaurants.demo.entity.Order;
+import com.restaurants.demo.util.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -15,8 +16,16 @@ import java.util.List;
     It extends JpaRepository, providing basic CRUD operations, and JpaSpecificationExecutor for advanced querying capabilities.
  */
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.createdAt BETWEEN :start AND :end")
-    Long sumTotalAmountBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    @Query("""
+    SELECT COALESCE(SUM(o.totalAmount), 0)
+    FROM Order o
+    WHERE o.createdAt BETWEEN :start AND :end
+      AND o.status = com.restaurants.demo.util.OrderStatus.BILLED
+""")
+    Long sumTotalAmountBetween(@Param("start") LocalDateTime start,
+                               @Param("end") LocalDateTime end);
+
 
     Long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
 }
