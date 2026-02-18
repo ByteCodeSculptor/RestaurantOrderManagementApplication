@@ -6,8 +6,6 @@ import com.restaurants.demo.dto.response.DailyReportResponse;
 import com.restaurants.demo.dto.response.OrderResponse;
 import com.restaurants.demo.entity.MenuItem;
 import com.restaurants.demo.entity.Order;
-import com.restaurants.demo.entity.OrderItem;
-import com.restaurants.demo.exception.InvalidTransitionException;
 import com.restaurants.demo.exception.ResourceNotAvailableException;
 import com.restaurants.demo.exception.ResourceNotFoundException;
 import com.restaurants.demo.mapper.OrderMapper;
@@ -15,14 +13,14 @@ import com.restaurants.demo.repository.MenuItemRepository;
 import com.restaurants.demo.repository.OrderRepository;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.specification.OrderSpecification;
-import com.restaurants.demo.util.OrderItemsUtil;
 import com.restaurants.demo.util.OrderStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -47,7 +45,10 @@ public class OrderServiceImpl implements OrderService {
 
         Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
 
-        OrderItemsUtil.processNewOrderItems(order, request.getItems(), menuItemMap);
+        for (OrderItemRequest itemReq : request.getItems()) {
+            MenuItem menuItem = menuItemMap.get(itemReq.getMenuItemId());
+            order.addOrUpdateItem(menuItem, itemReq.getQuantity(), menuItem.getPrice());
+        }
 
         Order savedOrder = orderRepository.save(order);
         return orderMapper.toResponse(savedOrder);
@@ -56,33 +57,26 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse updateOrder(Long orderId, OrderRequest request) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found: " + orderId));
 
-        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new ResourceNotAvailableException("Table is not available for order updation!");
-        }
+        validateOrderModifiable(order);
 
         Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
 
-        Map<Long, OrderItem> existingItemMap = order.getItems().stream()
-                .collect(Collectors.toMap(
-                        item -> item.getMenuItem().getId(),
-                        item -> item
-                ));
+        Map<Long, Integer> requestItemMap = request.getItems().stream()
+                .collect(Collectors.toMap(OrderItemRequest::getMenuItemId, OrderItemRequest::getQuantity));
 
-        for (OrderItemRequest itemRequest : request.getItems()) {
-            OrderItem existingItem = existingItemMap.get(itemRequest.getMenuItemId());
+        List<Long> itemsToRemove = order.getItems().stream()
+                .map(item -> item.getMenuItem().getId())
+                .filter(id -> !requestItemMap.containsKey(id))
+                .toList();
 
-            if (existingItem != null) {
-                OrderItemsUtil.updateItemQuantity(existingItem, itemRequest.getQuantity());
-            } else {
-                MenuItem menuItem = menuItemMap.get(itemRequest.getMenuItemId());
-                OrderItem newItem = OrderItemsUtil.createOrderItem(order, menuItem, itemRequest.getQuantity());
-                order.addItem(newItem);
-            }
-        }
+        itemsToRemove.forEach(order::removeItem);
 
-        order.recalculateTotal();
+        request.getItems().forEach(itemReq -> {
+            MenuItem menuItem = menuItemMap.get(itemReq.getMenuItemId());
+            order.addOrUpdateItem(menuItem, itemReq.getQuantity(), menuItem.getPrice());
+        });
 
         return orderMapper.toResponse(orderRepository.save(order));
     }
@@ -90,27 +84,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: " + orderId));
 
-        boolean isValidTransition = switch (order.getStatus()) {
-            case PLACED -> status == OrderStatus.PREPARING || status == OrderStatus.CANCELLED;
-            case PREPARING -> status == OrderStatus.READY;
-            case READY -> status == OrderStatus.SERVED;
-            case SERVED -> status == OrderStatus.BILLED;
-            case CANCELLED, BILLED -> false;
-        };
+        order.changeStatus(status);
 
-        if (!isValidTransition) {
-            throw new InvalidTransitionException(order.getStatus(), status);
-        }
-
-        order.setStatus(status);
         return orderMapper.toResponse(orderRepository.save(order));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderResponse> getOrders(OrderStatus status,
+    public Page<OrderResponse> getOrders(OrderStatus status,
                                          Integer tableNumber,
                                          LocalDate startDate,
                                          LocalDate endDate,
@@ -122,25 +105,16 @@ public class OrderServiceImpl implements OrderService {
                 OrderSpecification.createdBefore(endDate)
         );
 
-        return orderRepository.findAll(spec, pageable).stream()
-                .map(orderMapper::toResponse)
-                .toList();
+        return orderRepository.findAll(spec, pageable)
+                .map(orderMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: "+ orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: " + orderId));
         return orderMapper.toResponse(order);
-    }
-
-    @Override
-    public void deleteOrder(Long orderId) {
-        if (!orderRepository.existsById(orderId)) {
-           throw new ResourceNotFoundException("Order Not Found with Id: "+ orderId);
-        }
-        orderRepository.deleteById(orderId);
     }
 
     @Override
@@ -157,6 +131,8 @@ public class OrderServiceImpl implements OrderService {
         return new DailyReportResponse(totalRevenue, count);
     }
 
+    // --- Private Helpers ---
+
     private Map<Long, MenuItem> fetchAndValidateMenuItems(List<OrderItemRequest> itemRequests) {
         List<Long> menuItemIds = itemRequests.stream()
                 .map(OrderItemRequest::getMenuItemId)
@@ -166,10 +142,16 @@ public class OrderServiceImpl implements OrderService {
         List<MenuItem> menuItems = menuItemRepository.findAllById(menuItemIds);
 
         if (menuItems.size() != menuItemIds.size()) {
-            throw new ResourceNotFoundException("Menu item(s) not found!");
+            throw new ResourceNotFoundException("One or more Menu Items not found!");
         }
 
         return menuItems.stream()
                 .collect(Collectors.toMap(MenuItem::getId, menuItem -> menuItem));
+    }
+
+    private void validateOrderModifiable(Order order) {
+        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new ResourceNotAvailableException("Table not available for modification!");
+        }
     }
 }

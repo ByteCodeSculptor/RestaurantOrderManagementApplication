@@ -9,6 +9,7 @@ import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -32,15 +32,14 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response,"Order Created Successfully!"));
     }
 
-    // dynamic filtering controller whose access can be given to both admin and staff
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrders (@RequestParam(required = false) OrderStatus status,
-                                        @RequestParam(required = false) Integer tableNumber,
-                                        @RequestParam(required = false) LocalDate startDate,
-                                        @RequestParam(required = false) LocalDate endDate,
-                                                          Pageable pageable) {
-        List<OrderResponse> response = orderService.getOrders(status, tableNumber, startDate, endDate, pageable);
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getOrders (@RequestParam(required = false) OrderStatus status,
+                                                                       @RequestParam(required = false) Integer tableNumber,
+                                                                       @RequestParam(required = false) LocalDate startDate,
+                                                                       @RequestParam(required = false) LocalDate endDate,
+                                                                       Pageable pageable) {
+        Page<OrderResponse> response = orderService.getOrders(status, tableNumber, startDate, endDate, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Orders Fetched Successfully!"));
     }
 
@@ -68,14 +67,6 @@ public class OrderController {
         OrderResponse response =  orderService.updateOrder(id, orderRequest);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Updated Successfully!"));
     }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<OrderResponse>> deleteOrder (@PathVariable Long id) {
-        orderService.deleteOrder(id);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Order Deleted Successfully!"));
-    }
-
 
     @GetMapping("/reports")
     @PreAuthorize("hasRole('ADMIN')")

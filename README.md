@@ -133,9 +133,6 @@ PATCH /api/orders/{id}/status
 ### Update Order
 PUT /api/orders/{id}
 
-### Delete Order
-DELETE /api/orders/{id}
-
 ---
 
 ## 📊 Reporting (ADMIN)

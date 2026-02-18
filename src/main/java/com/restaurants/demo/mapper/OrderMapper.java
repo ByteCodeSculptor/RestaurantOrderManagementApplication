@@ -13,14 +13,11 @@ import org.mapstruct.Mapping;
  */
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
-    @Mapping(source = "totalAmount", target = "totalAmount")
     OrderResponse toResponse (Order order);
 
     @Mapping(source = "menuItem.id", target = "menuItemId")
     @Mapping(source = "menuItem.name", target = "menuItemName") // Just to be safe
     @Mapping(source = "order.id", target = "orderId")
-    @Mapping(source = "priceAtOrderTime", target = "priceAtOrderTime")
-    @Mapping(source = "subtotal", target = "subtotal")
     OrderItemResponse toResponse (OrderItem item);
 }
 

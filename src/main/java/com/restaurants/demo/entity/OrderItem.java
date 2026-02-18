@@ -1,44 +1,66 @@
 package com.restaurants.demo.entity;
 
+import com.restaurants.demo.exception.ResourceNotAvailableException;
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.math.BigDecimal;
-
-/*
-    OrderItem is an entity class that represents an item in a customer's order. 
-    It contains references to the associated Order and MenuItem, as well as details about the quantity ordered, price at the time of order, and the subtotal for that item.
-*/
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "order_items")
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor // OrderItem orderItem = new OrderItem()
-@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "order_items")
 public class OrderItem {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
     private Order order;
 
-    @ManyToOne
-    @JoinColumn(name = "menu_item_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "menu_item_id")
     private MenuItem menuItem;
 
-    @Column(name = "menu_item_name", length = 100, nullable = false)
+    @Column(name = "menu_item_name")
     private String menuItemName;
 
-    @Column(name = "price_at_order_time", nullable = false)
+    // Snapshot price
+    @Column(name = "price_at_order_time")
     private Long priceAtOrderTime;
 
-    @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
     private Long subtotal;
+
+    public OrderItem(Order order, MenuItem menuItem, int quantity, Long currentPrice) {
+        if (!menuItem.getAvailable()) {
+            throw new ResourceNotAvailableException(menuItem.getName() + " is currently unavailable.");
+        }
+
+        this.order = order;
+        this.menuItem = menuItem;
+        this.menuItemName = menuItem.getName();
+        this.quantity = quantity;
+
+        this.priceAtOrderTime = currentPrice;
+
+        this.recalculateSubtotal();
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+        this.recalculateSubtotal();
+    }
+
+    private void recalculateSubtotal() {
+        if (this.priceAtOrderTime != null && this.quantity != null) {
+            this.subtotal = this.priceAtOrderTime * this.quantity;
+        } else {
+            this.subtotal = 0L;
+        }
+    }
 }
