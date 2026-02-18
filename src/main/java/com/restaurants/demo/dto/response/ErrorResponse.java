@@ -24,4 +24,3 @@ public class ErrorResponse {
     public String getMessage() { return message; }
     public LocalDateTime getTimestamp() { return timestamp; }
 }
-
