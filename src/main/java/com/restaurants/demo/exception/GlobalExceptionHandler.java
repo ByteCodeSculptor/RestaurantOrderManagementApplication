@@ -43,4 +43,9 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(ValidationException ex){
+        return ResponseEntity.badRequest().body(ApiResponse.failure(ex.getMessage()));
+    }
+
 }
