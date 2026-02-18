@@ -28,4 +28,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     Long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
+    boolean existsByTableNumberAndStatusNotIn(Integer tableNumber, List<OrderStatus> statuses);
+
 }

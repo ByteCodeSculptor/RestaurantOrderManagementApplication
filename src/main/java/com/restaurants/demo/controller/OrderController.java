@@ -8,12 +8,14 @@ import com.restaurants.demo.util.ApiResponse;
 import com.restaurants.demo.service.OrderService;
 import com.restaurants.demo.util.OrderStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -21,7 +23,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-
+@Validated
 public class OrderController {
     private final OrderService orderService;
 
@@ -46,14 +48,14 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById (@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById (@PathVariable @Positive Long id) {
         OrderResponse response =  orderService.getOrderById(id);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Fetched Successfully!"));
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (@PathVariable Long id,
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus (@PathVariable @Positive Long id,
                                                             @RequestBody OrderStatusRequest orderStatusRequest) {
         OrderResponse response =  orderService.updateOrderStatus(id, orderStatusRequest.getStatus());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Status Updated Successfully!"));
@@ -62,7 +64,7 @@ public class OrderController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<OrderResponse>> updateOrder (@PathVariable Long id,
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrder (@PathVariable @Positive Long id,
                                                 @Valid @RequestBody OrderRequest orderRequest) {
         OrderResponse response =  orderService.updateOrder(id, orderRequest);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Order Updated Successfully!"));

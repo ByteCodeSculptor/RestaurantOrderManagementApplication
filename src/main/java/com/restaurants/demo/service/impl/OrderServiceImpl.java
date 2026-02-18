@@ -39,6 +39,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
+        validateOrderModifiable(request);
+
         Order order = new Order();
         order.setTableNumber(request.getTableNumber());
         order.setStatus(OrderStatus.PLACED);
@@ -59,10 +61,13 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order Not Found: " + orderId));
 
-        validateOrderModifiable(order);
+        // Check if order is available to be modified
+        validateOrderModifiable(request);
 
+        // Fetch all menu items from db
         Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
 
+        // Mapping {id, quantity} for each menu item
         Map<Long, Integer> requestItemMap = request.getItems().stream()
                 .collect(Collectors.toMap(OrderItemRequest::getMenuItemId, OrderItemRequest::getQuantity));
 
@@ -86,6 +91,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order Not Found with Id: " + orderId));
 
+        // update status of order
         order.changeStatus(status);
 
         return orderMapper.toResponse(orderRepository.save(order));
@@ -98,6 +104,7 @@ public class OrderServiceImpl implements OrderService {
                                          LocalDate startDate,
                                          LocalDate endDate,
                                          Pageable pageable) {
+        // Creating specification for all incoming filters combined using AND in SQL query
         Specification<Order> spec = Specification.allOf(
                 OrderSpecification.hasStatus(status),
                 OrderSpecification.hasTableNumber(tableNumber),
@@ -105,8 +112,7 @@ public class OrderServiceImpl implements OrderService {
                 OrderSpecification.createdBefore(endDate)
         );
 
-        return orderRepository.findAll(spec, pageable)
-                .map(orderMapper::toResponse);
+        return orderRepository.findAll(spec, pageable).map(orderMapper::toResponse);
     }
 
     @Override
@@ -132,7 +138,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // --- Private Helpers ---
-
     private Map<Long, MenuItem> fetchAndValidateMenuItems(List<OrderItemRequest> itemRequests) {
         List<Long> menuItemIds = itemRequests.stream()
                 .map(OrderItemRequest::getMenuItemId)
@@ -149,9 +154,16 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toMap(MenuItem::getId, menuItem -> menuItem));
     }
 
-    private void validateOrderModifiable(Order order) {
-        if (order.getStatus() == OrderStatus.BILLED || order.getStatus() == OrderStatus.CANCELLED) {
-            throw new ResourceNotAvailableException("Table not available for modification!");
+    private void validateOrderModifiable(OrderRequest request) {
+        List<OrderStatus> finishedStatuses = List.of(OrderStatus.BILLED, OrderStatus.CANCELLED);
+
+        boolean activeOrderExists = orderRepository.existsByTableNumberAndStatusNotIn(
+                request.getTableNumber(),
+                finishedStatuses
+        );
+
+        if (activeOrderExists) {
+            throw new ResourceNotAvailableException("Table currently not available!");
         }
     }
 }
