@@ -3,7 +3,6 @@ package com.restaurants.demo.dto.request;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import java.math.BigDecimal;
 
 /*
     MenuRequest is a DTO used for creating and updating menu items. 
