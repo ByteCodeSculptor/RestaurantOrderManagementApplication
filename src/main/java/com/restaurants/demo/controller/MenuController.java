@@ -14,11 +14,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/menu-items")
 @RequiredArgsConstructor
+@Validated
 public class MenuController {
 
     private final MenuService menuService;
@@ -32,7 +34,7 @@ public class MenuController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(@PathVariable Long id, @Valid @RequestBody MenuRequest request){
+    public ResponseEntity<ApiResponse<MenuResponse>> updateMenuItem(@PathVariable @Positive Long id, @Valid @RequestBody MenuRequest request){
         MenuResponse response = menuService.updateMenuItem(id,request);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Menu Updated Successfully"));
     }
@@ -40,7 +42,7 @@ public class MenuController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteMenuItem(@PathVariable Long id){
+    public ResponseEntity<ApiResponse<Void>> deleteMenuItem(@PathVariable @Positive Long id){
         menuService.deleteMenuItem(id);
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(null,"Menu Deleted Successfully"));
     }
@@ -48,7 +50,7 @@ public class MenuController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/availability")
-    public ResponseEntity<ApiResponse<AvailabilityResponse>> updateAvailability(@PathVariable Long id, @Valid @RequestBody AvailabilityRequest request){
+    public ResponseEntity<ApiResponse<AvailabilityResponse>> updateAvailability(@PathVariable @Positive Long id, @Valid @RequestBody AvailabilityRequest request){
         AvailabilityResponse response = menuService.updateAvailability(id, request.getAvailable());
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.success(response,"Availability Updated Successfully"));
     }
