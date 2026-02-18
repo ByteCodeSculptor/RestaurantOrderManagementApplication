@@ -38,7 +38,7 @@ public class OrderItem {
 
     public OrderItem(Order order, MenuItem menuItem, int quantity, Long currentPrice) {
         if (!menuItem.getAvailable()) {
-            throw new ResourceNotAvailableException(menuItem.getName() + " is currently unavailable.");
+            throw new ResourceNotAvailableException("Some menu item(s) may be currently unavailable");
         }
 
         this.order = order;
