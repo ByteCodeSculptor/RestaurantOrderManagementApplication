@@ -95,23 +95,4 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidCredentialsException("Invalid email or password.");
         }
     }
-
-
-
-    @Override
-    public MessageResponse registerUser(SignupRequest signUpRequest) {
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new RuntimeException("Error: Email is already in use!");
-        }
-
-        User user = new User(
-                signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()),
-                ERole.valueOf(signUpRequest.getRole().toUpperCase()),
-                0, true, null
-        );
-
-        userRepository.save(user);
-        return new MessageResponse("User registered successfully!" , null);
-    }
 }

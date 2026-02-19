@@ -62,7 +62,11 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order Not Found: " + orderId));
 
         // Check if order is available to be modified
-        validateOrderModifiable(request);
+        if (!order.getTableNumber().equals(request.getTableNumber())) {
+            validateOrderModifiable(request);
+        }
+
+        order.setStatus(OrderStatus.PLACED);
 
         // Fetch all menu items from db
         Map<Long, MenuItem> menuItemMap = fetchAndValidateMenuItems(request.getItems());
