@@ -10,6 +10,5 @@ import com.restaurants.demo.dto.response.MessageResponse;
 
 public interface AuthService {
     JwtResponse authenticateUser(LoginRequest loginRequest);
-    MessageResponse registerUser(SignupRequest signupRequest);
     BulkRegistrationResponse registerUsers(List<SignupRequest> signupRequests);
 }
